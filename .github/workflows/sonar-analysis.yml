@@ -163,16 +163,16 @@ jobs:
             --severity HIGH,CRITICAL \
             --format table \
             --security-checks vuln \
-            requirements.txt || true
+            requirements.txt 
       - name: Run Trivy Scan - EXERCISES-SERVICE Source
         working-directory: microservices/exercises-service
         run: |
           echo "--- Starting Trivy Source Scan (Exercises Service) ---"
           trivy fs \
+            --scanners vuln,secret,misconfig \
             --severity HIGH,CRITICAL \
             --format table \
-            --security-checks vuln,secret,config,iac \
-            . || true
+            .
 
       # SCORES-SERVICE
       - name: Install Scores-Service Dependencies
@@ -203,16 +203,16 @@ jobs:
             --severity HIGH,CRITICAL \
             --format table \
             --security-checks vuln \
-            requirements.txt || true
+            requirements.txt 
       - name: Run Trivy Scan - SCORES-SERVICE Source
         working-directory: microservices/scores-service
         run: |
           echo "--- Starting Trivy Source Scan (Scores Service) ---"
           trivy fs \
+            --scanners vuln,secret,misconfig \
             --severity HIGH,CRITICAL \
             --format table \
-            --security-checks vuln,secret,config,iac \
-            . || true
+            .
 
       # USER-MANAGEMENT-SERVICE
       - name: Install User-Management-Service Dependencies
@@ -243,14 +243,14 @@ jobs:
             --severity HIGH,CRITICAL \
             --format table \
             --security-checks vuln \
-            requirements.txt || true
+            requirements.txt 
       - name: Run Trivy Scan - USER-MANAGEMENT-SERVICE Source
         working-directory: microservices/user-management-service
         run: |
           echo "--- Starting Trivy Source Scan (User Management Service) ---"
           trivy fs \
+            --scanners vuln,secret,misconfig \
             --severity HIGH,CRITICAL \
             --format table \
-            --security-checks vuln,secret,config,iac \
-            . || true
+            .
 ###TEST SONARQUBE + TRIVY INTEGRATION#####

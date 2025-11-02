@@ -1,7 +1,6 @@
 import types
 import pytest
 from flask import Flask
-from app import utils
 import app.utils as utils_mod
 
 def test_is_admin_true_false():
@@ -34,19 +33,17 @@ def test_verify_token_with_user_service_exception(monkeypatch):
     monkeypatch.setattr(utils_mod, "requests", types.SimpleNamespace(get=bad_get))
     assert utils_mod.verify_token_with_user_service("token") is None
 
-def test_authenticate_decorator_missing_header(app=None):
-    # direct call without request context: use Flask test_request_context
+def test_authenticate_decorator_missing_header():
     app = Flask(__name__)
     @utils_mod.authenticate
     def _inner(user_data):
         return {"ok": True}
     with app.test_request_context("/", method="GET"):
         resp = _inner()
-        # missing header returns (jsonify_response, status_code) tuple
         assert isinstance(resp, tuple)
         assert resp[1] in (401, 403)
 
-def test_authenticate_decorator_invalid_format(monkeypatch):
+def test_authenticate_decorator_invalid_format():
     app = Flask(__name__)
     @utils_mod.authenticate
     def _inner(user_data):
@@ -58,15 +55,12 @@ def test_authenticate_decorator_invalid_format(monkeypatch):
 
 def test_authenticate_decorator_success(monkeypatch):
     app = Flask(__name__)
-    # patch verify function to return user data
     monkeypatch.setattr(utils_mod, "verify_token_with_user_service", lambda t: {"username":"u","admin":True}, raising=False)
     @utils_mod.authenticate
     def _inner(user_data):
-        # should receive user_data as first arg
         return {"received": user_data.get("username")}
     with app.test_request_context("/", method="GET", headers={"Authorization": "Bearer tok"}):
         res = _inner()
-        # decorator forwards to inner and returns its result on success
         assert isinstance(res, dict)
         assert res.get("received") == "u"
 
