@@ -1,12 +1,31 @@
 import pytest
 from app.main import app
-# Giả định bạn có một hàm utility cho logic scoring
-# from app.utils import calculate_score 
+
+class _CompatResponse:
+    def __init__(self, resp):
+        self._resp = resp
+    def json(self):
+        return self._resp.get_json()
+    def __getattr__(self, name):
+        return getattr(self._resp, name)
+
+class _CompatClient:
+    def __init__(self, c):
+        self._c = c
+    def get(self, *a, **k):
+        return _CompatResponse(self._c.get(*a, **k))
+    def post(self, *a, **k):
+        return _CompatResponse(self._c.post(*a, **k))
+    def put(self, *a, **k):
+        return _CompatResponse(self._c.put(*a, **k))
+    def delete(self, *a, **k):
+        return _CompatResponse(self._c.delete(*a, **k))
 
 @pytest.fixture
 def client():
-    from fastapi.testclient import TestClient
-    return TestClient(app)
+    app.config.update(TESTING=True)
+    with app.test_client() as c:
+        yield _CompatClient(c)
 
 def test_submit_score_endpoint_success(client):
     # Giả định submission data

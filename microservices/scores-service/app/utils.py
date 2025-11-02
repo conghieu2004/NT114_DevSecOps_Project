@@ -47,25 +47,26 @@ def authenticate(f):
     return decorated_function
 
 def verify_token_with_user_service(token):
-    """Verify token with user management service"""
+    """Gọi user-service xác thực token, chỉ trả về dict user_data hợp lệ; sai cấu trúc -> None."""
     try:
+        url = f"{USER_MANAGEMENT_SERVICE_URL}/verify"
         headers = {"Authorization": f"Bearer {token}"}
-        response = requests.get(
-            f"{USER_MANAGEMENT_SERVICE_URL}/api/auth/status",
-            headers=headers,
-            timeout=10
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('status') == 'success':
-                return data.get('data')
-        
+        resp = requests.get(url, headers=headers, timeout=3)
+        if resp.status_code != 200:
+            return None
+        body = resp.json() or {}
+        if isinstance(body, dict) and body.get("status") == "success" and isinstance(body.get("data"), dict):
+            return body.get("data")
         return None
-    except Exception as e:
-        logger.error(f"Error verifying token with user service: {str(e)}")
+    except Exception:
+        # giữ an toàn: lỗi khi gọi service -> coi như token không hợp lệ
         return None
 
 def is_admin(user_data):
-    """Check if user has admin privileges"""
-    return user_data and user_data.get('admin', False)
+    """Return True if user_data indicates admin privileges; otherwise False."""
+    if not isinstance(user_data, dict):
+        return False
+    try:
+        return bool(user_data.get("admin", False))
+    except Exception:
+        return False

@@ -185,16 +185,18 @@ jobs:
         run: |
           python -m pytest --cov=app --cov-report=xml || true
       - name: Run SonarQube Scanner - SCORES-SERVICE
+        working-directory: microservices/scores-service
         run: |
           $HOME/sonar-scanner/sonar-scanner-5.0.1.3006-linux/bin/sonar-scanner \
             -Dsonar.projectKey=NT114-scores-service \
-            -Dsonar.sources=microservices/scores-service/app \
+            -Dsonar.sources=app \
+            -Dsonar.tests=tests \
             -Dsonar.host.url=${SONAR_HOST_URL} \
             -Dsonar.token=${SONAR_TOKEN} \
             -Dsonar.language=py \
             -Dsonar.sourceEncoding=UTF-8 \
-            -Dsonar.exclusions=microservices/scores-service/requirements.txt,microservices/scores-service/Dockerfile,microservices/scores-service/coverage.xml \
-            -Dsonar.python.coverage.reportPaths=microservices/scores-service/coverage.xml
+            -Dsonar.exclusions=requirements.txt,Dockerfile \
+            -Dsonar.python.coverage.reportPaths=coverage.xml
       - name: Run Trivy Scan - SCORES-SERVICE Dependencies
         working-directory: microservices/scores-service
         run: |
