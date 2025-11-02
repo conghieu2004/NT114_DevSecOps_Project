@@ -31,50 +31,11 @@ class Score(db.Model):
         self.user_results = user_results
 
     def to_json(self):
+        """Convert entity to JSON with normalized results and user_results."""
         logger.debug(f"Converting Score {self.id} to JSON")
-        
-        # Convert results to array format expected by frontend
-        results_array = []
-        all_correct = False
-        
-        if self.results:
-            if isinstance(self.results, dict):
-                # If results is an object like {"passed": true, "score": 95}
-                # Convert to array format based on test results
-                if 'passed' in self.results:
-                    results_array = [self.results['passed']]
-                    all_correct = self.results['passed']
-                else:
-                    # If results contains array of test results
-                    if 'test_results' in self.results:
-                        results_array = self.results['test_results']
-                    else:
-                        # Default fallback - assume single test passed
-                        results_array = [True]
-                    all_correct = all(results_array) if results_array else False
-            elif isinstance(self.results, list):
-                # Already array format
-                results_array = self.results
-                all_correct = all(results_array) if results_array else False
-            else:
-                # Single boolean value
-                results_array = [bool(self.results)]
-                all_correct = bool(self.results)
-        else:
-            results_array = []
-            all_correct = False
-        
-        # Convert user_results to array format
-        user_results_array = []
-        if self.user_results:
-            if isinstance(self.user_results, dict):
-                # Convert object to array of strings
-                user_results_array = [str(v) for v in self.user_results.values()]
-            elif isinstance(self.user_results, list):
-                user_results_array = [str(item) for item in self.user_results]
-            else:
-                user_results_array = [str(self.user_results)]
-        
+        results_array, all_correct = self._normalize_results(self.results)
+        user_results_array = self._normalize_user_results(self.user_results)
+
         return {
             "id": self.id,
             "user_id": self.user_id,
@@ -83,9 +44,52 @@ class Score(db.Model):
             "results": results_array,
             "user_results": user_results_array,
             "all_correct": all_correct,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_at": self._iso_or_none(self.created_at),
+            "updated_at": self._iso_or_none(self.updated_at),
         }
+
+    @staticmethod
+    def _normalize_results(results):
+        """Return (results_array, all_correct) with the same semantics as before."""
+        if not results:
+            return [], False
+
+        # Dict case: {"passed": bool} or {"test_results": [bool, ...]} or other dicts
+        if isinstance(results, dict):
+            if "passed" in results:
+                passed = bool(results["passed"])
+                return [passed], passed
+            test_results = results.get("test_results")
+            if isinstance(test_results, list):
+                arr = test_results
+            else:
+                # Default fallback – assume single test passed
+                arr = [True]
+            return arr, (all(arr) if arr else False)
+
+        # List case: already an array of booleans
+        if isinstance(results, list):
+            arr = results
+            return arr, (all(arr) if arr else False)
+
+        # Scalar case: coerce to boolean
+        val = bool(results)
+        return [val], val
+
+    @staticmethod
+    def _normalize_user_results(user_results):
+        """Normalize user_results to list[str]."""
+        if not user_results:
+            return []
+        if isinstance(user_results, dict):
+            return [str(v) for v in user_results.values()]
+        if isinstance(user_results, list):
+            return [str(item) for item in user_results]
+        return [str(user_results)]
+
+    @staticmethod
+    def _iso_or_none(dt):
+        return dt.isoformat() if dt else None
 
     @classmethod
     def create_score(cls, user_id, exercise_id, answer=None, results=None, user_results=None):
