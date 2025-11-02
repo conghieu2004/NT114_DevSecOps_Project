@@ -3,16 +3,16 @@ from flask import Blueprint, jsonify, request
 from app.models import Exercise, db
 from app.utils import authenticate, is_admin
 from app.logger import get_logger
+from app.constants import (
+    FULL_TRACEBACK_MSG,
+    INTERNAL_SERVER_ERROR,
+    INVALID_PAYLOAD_ERROR,
+)
 
 # Get logger for this module
 logger = get_logger('exercises_api')
 
 exercises_blueprint = Blueprint("exercises", __name__)
-
-# Constants
-FULL_TRACEBACK_MSG = "Full traceback:"
-INTERNAL_SERVER_ERROR = "Internal server error"
-INVALID_PAYLOAD_ERROR = "Invalid payload."
 
 @exercises_blueprint.route("/ping", methods=["GET"])
 def ping_pong():
@@ -33,7 +33,7 @@ def get_all_exercises():
         return jsonify(response_object), 200
     except Exception as e:
         logger.error(f"Error getting all exercises: {str(e)}")
-        logger.exception(f"{FULL_TRACEBACK_MSG}")
+        logger.exception(FULL_TRACEBACK_MSG)
         return jsonify({"status": "error", "message": INTERNAL_SERVER_ERROR}), 500
 
 @exercises_blueprint.route("/<exercise_id>", methods=["GET"])
@@ -56,7 +56,7 @@ def get_single_exercise(exercise_id):
         return jsonify(response_object), 404
     except Exception as e:
         logger.error(f"Error getting exercise {exercise_id}: {str(e)}")
-        logger.exception(f"{FULL_TRACEBACK_MSG}")
+        logger.exception(FULL_TRACEBACK_MSG)
         return jsonify({"status": "error", "message": INTERNAL_SERVER_ERROR}), 500
 
 @exercises_blueprint.route("/validate_code", methods=["POST"])
@@ -138,7 +138,7 @@ def validate_code():
         
     except Exception as e:
         logger.error(f"Error during code validation: {str(e)}")
-        logger.exception(f"{FULL_TRACEBACK_MSG}")
+        logger.exception(FULL_TRACEBACK_MSG)
         return jsonify({"status": "error", "message": INTERNAL_SERVER_ERROR}), 500
 
 @exercises_blueprint.route("/", methods=["POST"])
@@ -199,7 +199,7 @@ def add_exercise(user_data):
         return jsonify({"status": "fail", "message": INVALID_PAYLOAD_ERROR}), 400
     except Exception as e:
         logger.error(f"Error adding exercise {title}: {str(e)}")
-        logger.exception(f"{FULL_TRACEBACK_MSG}")
+        logger.exception(FULL_TRACEBACK_MSG)
         db.session.rollback()
         return jsonify({"status": "error", "message": INTERNAL_SERVER_ERROR}), 500
 
@@ -267,7 +267,7 @@ def update_exercise(user_data, exercise_id):
         return jsonify({"status": "fail", "message": "Invalid exercise ID"}), 400
     except Exception as e:
         logger.error(f"Error updating exercise {exercise_id}: {str(e)}")
-        logger.exception(f"{FULL_TRACEBACK_MSG}")
+        logger.exception(FULL_TRACEBACK_MSG)
         db.session.rollback()
         return jsonify({"status": "error", "message": INTERNAL_SERVER_ERROR}), 500
 

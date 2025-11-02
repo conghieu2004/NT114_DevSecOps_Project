@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.types import JSON
 from app.logger import get_logger
+from app.constants import FULL_TRACEBACK_MSG
 
 # Get logger for this module
 logger = get_logger("models")
@@ -77,7 +78,7 @@ class Exercise(db.Model):
             return exercise
         except Exception as e:
             logger.error(f"Failed to create exercise: {str(e)}")
-            logger.exception("Full traceback:")
+            logger.exception(FULL_TRACEBACK_MSG)
             db.session.rollback()
             raise e
 
@@ -95,6 +96,6 @@ class Exercise(db.Model):
             logger.info(f"Exercise {self.id} updated successfully")
         except Exception as e:
             logger.error(f"Failed to update exercise {self.id}: {str(e)}")
-            logger.exception("Full traceback:")
+            logger.exception(FULL_TRACEBACK_MSG)
             db.session.rollback()
             raise e
