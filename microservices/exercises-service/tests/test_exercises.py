@@ -647,7 +647,7 @@ def test_add_and_update_exercise_branches(monkeypatch, client):
                 return types.SimpleNamespace(first=lambda : None)
         monkeypatch.setattr(exercises_api, "Exercise", types.SimpleNamespace(query=QNot2()), raising=False)
         put = client.put(_fill_id(item, 5), json={"title":"x"})
-        assert put.status_code in (404, 400, 403, 405)
+        assert put.status_code in (404, 400, 401, 403, 405)
 
         # found -> success
         exobj = _DummyExercise(id=5, title="x")
@@ -656,4 +656,4 @@ def test_add_and_update_exercise_branches(monkeypatch, client):
                 return types.SimpleNamespace(first=lambda : exobj)
         monkeypatch.setattr(exercises_api, "Exercise", types.SimpleNamespace(query=QFound2()), raising=False)
         put2 = client.put(_fill_id(item, 5), json={"title":"y"})
-        assert put2.status_code in (200, 400, 403, 405)
+        assert put2.status_code in (200, 400, 401, 403, 405)

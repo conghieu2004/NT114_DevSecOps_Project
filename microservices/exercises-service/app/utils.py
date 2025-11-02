@@ -7,7 +7,16 @@ from app.logger import get_logger
 # Get logger for this module
 logger = get_logger("exercises_utils")
 
-USER_MANAGEMENT_SERVICE_URL = os.environ.get('USER_MANAGEMENT_SERVICE_URL', 'http://host.docker.internal:5001')
+# Mặc định dùng HTTPS; có thể override qua env trong môi trường dev/test
+USER_MANAGEMENT_SERVICE_URL = os.environ.get('USER_MANAGEMENT_SERVICE_URL', 'https://host.docker.internal:5001')
+
+def _get_user_service_url():
+    """Trả về URL user-service; nếu production mà dùng http -> tự động chuyển sang https."""
+    url = os.environ.get('USER_MANAGEMENT_SERVICE_URL', USER_MANAGEMENT_SERVICE_URL)
+    if os.environ.get("FLASK_ENV") == "production" and url.startswith("http://"):
+        logger.warning("Insecure USER_MANAGEMENT_SERVICE_URL in production; switching to HTTPS")
+        url = "https://" + url[len("http://"):]
+    return url
 
 def authenticate(f):
     @wraps(f)
@@ -49,7 +58,7 @@ def authenticate(f):
 def verify_token_with_user_service(token):
     """Call user-management service to verify token and return user data or None."""
     try:
-        url = f"{USER_MANAGEMENT_SERVICE_URL}/verify"
+        url = f"{_get_user_service_url()}/verify"
         headers = {"Authorization": f"Bearer {token}"}
         resp = requests.get(url, headers=headers, timeout=3)
         if resp.status_code != 200:
