@@ -158,7 +158,7 @@ def add_exercise(user_data):
     post_data = request.get_json()
     if not post_data:
         logger.warning("Empty payload received for add exercise")
-        response_object = {"status": "fail", "message": "Invalid payload."}
+        response_object = {"status": "fail", "message": INVALID_PAYLOAD_ERROR}
         return jsonify(response_object), 400
         
     title = post_data.get("title")
@@ -196,7 +196,7 @@ def add_exercise(user_data):
     except exc.IntegrityError as e:
         logger.error(f"Database integrity error adding exercise {title}: {str(e)}")
         db.session.rollback()
-        return jsonify({"status": "fail", "message": "Invalid payload."}), 400
+        return jsonify({"status": "fail", "message": INVALID_PAYLOAD_ERROR}), 400
     except Exception as e:
         logger.error(f"Error adding exercise {title}: {str(e)}")
         logger.exception(f"{FULL_TRACEBACK_MSG}")
@@ -221,7 +221,7 @@ def update_exercise(user_data, exercise_id):
         post_data = request.get_json()
         if not post_data:
             logger.warning("Empty payload received for update exercise")
-            return jsonify({"status": "fail", "message": "Invalid payload."}), 400
+            return jsonify({"status": "fail", "message": INVALID_PAYLOAD_ERROR}), 400
 
         title = post_data.get("title")
         body = post_data.get("body")
