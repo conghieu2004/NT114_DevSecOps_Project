@@ -43,6 +43,21 @@ class Exercise(db.Model):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
+    # New: nicer repr for debugging/testing
+    def __repr__(self):
+        return f"<Exercise id={getattr(self, 'id', None)} title={self.title!r} difficulty={self.difficulty}>"
+
+    # New: helper to construct instance from dict (no DB side effects)
+    @staticmethod
+    def from_json(data):
+        return Exercise(
+            title=data.get("title", ""),
+            body=data.get("body", ""),
+            difficulty=data.get("difficulty", 0),
+            test_cases=data.get("test_cases", []),
+            solutions=data.get("solutions", []),
+        )
+
     @classmethod
     def create_exercise(cls, title, body, difficulty, test_cases, solutions):
         """Create exercise with logging"""
