@@ -1,3 +1,5 @@
+data "aws_region" "current" {}
+
 # ECR Repository URLs
 output "repository_urls" {
   description = "Map of repository names to their URLs"
@@ -28,7 +30,7 @@ output "repository_names" {
 # Registry ID
 output "registry_id" {
   description = "The registry ID where the repositories were created"
-  value       = [for repo in aws_ecr_repository.repositories : repo.registry_id][0]
+  value       = length(aws_ecr_repository.repositories) > 0 ? values(aws_ecr_repository.repositories)[0].registry_id : null
 }
 
 # GitHub Actions IAM Policy ARN
@@ -64,7 +66,5 @@ output "github_actions_secret_access_key" {
 # ECR Login command
 output "ecr_login_command" {
   description = "Command to login to ECR"
-  value       = "aws ecr get-login-password --region ${data.aws_region.current.name} | docker login --username AWS --password-stdin ${[for repo in aws_ecr_repository.repositories : repo.registry_id][0]}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com"
+  value       = length(aws_ecr_repository.repositories) > 0 ? "aws ecr get-login-password --region ${data.aws_region.current.name} | docker login --username AWS --password-stdin ${values(aws_ecr_repository.repositories)[0].registry_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com" : ""
 }
-
-data "aws_region" "current" {}

@@ -70,10 +70,10 @@ module "eks_nodegroup" {
 
   labels = var.node_labels
 
-  enable_coredns_addon            = var.enable_coredns_addon
-  coredns_version                 = var.coredns_version
-  resolve_conflicts_on_create     = var.resolve_conflicts_on_create
-  resolve_conflicts_on_update     = var.resolve_conflicts_on_update
+  enable_coredns_addon        = var.enable_coredns_addon
+  coredns_version             = var.coredns_version
+  resolve_conflicts_on_create = var.resolve_conflicts_on_create
+  resolve_conflicts_on_update = var.resolve_conflicts_on_update
 
   tags = merge(
     var.tags,
@@ -156,8 +156,8 @@ module "ecr" {
   scan_on_push         = true
   encryption_type      = "AES256"
 
-  image_count_to_keep  = 10
-  untagged_image_days  = 7
+  image_count_to_keep = 10
+  untagged_image_days = 7
 
   create_github_actions_policy = true
   create_github_actions_user   = true
