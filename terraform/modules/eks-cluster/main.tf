@@ -22,11 +22,8 @@ module "eks" {
   cluster_service_ipv4_cidr = "172.20.0.0/16"
 
   # Disable custom KMS key creation (use AWS managed key instead - FREE)
-  create_kms_key = false
-  cluster_encryption_config = {
-    resources        = ["secrets"]
-    provider_key_arn = null  # Uses AWS managed key: aws/eks
-  }
+  create_kms_key            = false
+  cluster_encryption_config = {}
 
   vpc_id                   = var.vpc_id
   subnet_ids               = var.subnet_ids
