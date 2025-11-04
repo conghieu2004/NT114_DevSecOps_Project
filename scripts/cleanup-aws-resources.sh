@@ -245,6 +245,102 @@ done
 echo "  ✅ Stacks deleted"
 echo ""
 
+# 15. Delete ECR Repositories
+echo "1️⃣5️⃣  Deleting ECR Repositories..."
+ECR_REPOS=$(aws ecr describe-repositories --region $AWS_REGION --query 'repositories[].repositoryName' --output text 2>/dev/null)
+for REPO in $ECR_REPOS; do
+    echo "  🗑️  Deleting ECR Repository: $REPO"
+    aws ecr delete-repository --repository-name $REPO --region $AWS_REGION --force 2>/dev/null
+done
+echo "  ✅ ECR Repositories deleted"
+echo ""
+
+# 16. Delete IAM Users (GitHub Actions users)
+echo "1️⃣6️⃣  Deleting IAM Users..."
+IAM_USERS=$(aws iam list-users --query 'Users[?contains(UserName, `github-actions`) || contains(UserName, `nt114`)].UserName' --output text 2>/dev/null)
+for USER in $IAM_USERS; do
+    echo "  🗑️  Deleting IAM User: $USER"
+
+    # Delete access keys
+    ACCESS_KEYS=$(aws iam list-access-keys --user-name $USER --query 'AccessKeyMetadata[].AccessKeyId' --output text 2>/dev/null)
+    for KEY in $ACCESS_KEYS; do
+        echo "    - Deleting access key: $KEY"
+        aws iam delete-access-key --user-name $USER --access-key-id $KEY 2>/dev/null
+    done
+
+    # Detach user policies
+    USER_POLICIES=$(aws iam list-attached-user-policies --user-name $USER --query 'AttachedPolicies[].PolicyArn' --output text 2>/dev/null)
+    for POLICY in $USER_POLICIES; do
+        echo "    - Detaching policy: $POLICY"
+        aws iam detach-user-policy --user-name $USER --policy-arn $POLICY 2>/dev/null
+    done
+
+    # Delete inline user policies
+    INLINE_POLICIES=$(aws iam list-user-policies --user-name $USER --query 'PolicyNames[]' --output text 2>/dev/null)
+    for POL in $INLINE_POLICIES; do
+        echo "    - Deleting inline policy: $POL"
+        aws iam delete-user-policy --user-name $USER --policy-name $POL 2>/dev/null
+    done
+
+    # Remove user from groups
+    USER_GROUPS=$(aws iam list-groups-for-user --user-name $USER --query 'Groups[].GroupName' --output text 2>/dev/null)
+    for GROUP in $USER_GROUPS; do
+        echo "    - Removing from group: $GROUP"
+        aws iam remove-user-from-group --user-name $USER --group-name $GROUP 2>/dev/null
+    done
+
+    # Delete user
+    aws iam delete-user --user-name $USER 2>/dev/null
+done
+echo "  ✅ IAM Users deleted"
+echo ""
+
+# 17. Delete IAM Groups
+echo "1️⃣7️⃣  Deleting IAM Groups..."
+IAM_GROUPS=$(aws iam list-groups --query 'Groups[?contains(GroupName, `eks`) || contains(GroupName, `nt114`)].GroupName' --output text 2>/dev/null)
+for GROUP in $IAM_GROUPS; do
+    echo "  🗑️  Deleting IAM Group: $GROUP"
+
+    # Detach group policies
+    GROUP_POLICIES=$(aws iam list-attached-group-policies --group-name $GROUP --query 'AttachedPolicies[].PolicyArn' --output text 2>/dev/null)
+    for POLICY in $GROUP_POLICIES; do
+        echo "    - Detaching policy: $POLICY"
+        aws iam detach-group-policy --group-name $GROUP --policy-arn $POLICY 2>/dev/null
+    done
+
+    # Delete inline group policies
+    INLINE_POLICIES=$(aws iam list-group-policies --group-name $GROUP --query 'PolicyNames[]' --output text 2>/dev/null)
+    for POL in $INLINE_POLICIES; do
+        echo "    - Deleting inline policy: $POL"
+        aws iam delete-group-policy --group-name $GROUP --policy-name $POL 2>/dev/null
+    done
+
+    # Delete group
+    aws iam delete-group --group-name $GROUP 2>/dev/null
+done
+echo "  ✅ IAM Groups deleted"
+echo ""
+
+# 18. Delete IAM Policies (Customer Managed)
+echo "1️⃣8️⃣  Deleting IAM Policies..."
+IAM_POLICIES=$(aws iam list-policies --scope Local --query 'Policies[?contains(PolicyName, `eks`) || contains(PolicyName, `nt114`) || contains(PolicyName, `github-actions`)].Arn' --output text 2>/dev/null)
+for POLICY_ARN in $IAM_POLICIES; do
+    POLICY_NAME=$(basename $POLICY_ARN)
+    echo "  🗑️  Deleting IAM Policy: $POLICY_NAME"
+
+    # Delete all policy versions except default
+    VERSIONS=$(aws iam list-policy-versions --policy-arn $POLICY_ARN --query 'Versions[?IsDefaultVersion==`false`].VersionId' --output text 2>/dev/null)
+    for VERSION in $VERSIONS; do
+        echo "    - Deleting policy version: $VERSION"
+        aws iam delete-policy-version --policy-arn $POLICY_ARN --version-id $VERSION 2>/dev/null
+    done
+
+    # Delete policy
+    aws iam delete-policy --policy-arn $POLICY_ARN 2>/dev/null
+done
+echo "  ✅ IAM Policies deleted"
+echo ""
+
 echo "========================================="
 echo "✅ CLEANUP COMPLETED!"
 echo "========================================="
