@@ -7,6 +7,13 @@ from app.logger import get_logger
 # Get logger for this module
 logger = get_logger('users_api')
 
+# Constants
+FULL_TRACEBACK_MSG = "Full traceback:"
+PERMISSION_DENIED_MSG = "You do not have permission to do that."
+INVALID_PAYLOAD_MSG = "Invalid payload."
+USER_EXISTS_MSG = "Sorry. That user already exists."
+MISSING_FIELDS_MSG = "Missing required fields: username, email, password"
+
 users_blueprint = Blueprint("users", __name__)
 
 
@@ -20,7 +27,7 @@ def get_all_users(user_id):
     #     logger.warning("Non-admin user attempted to get all users")
     #     response_object = {
     #         "status": "fail",
-    #         "message": "You do not have permission to do that."
+    #         "message": PERMISSION_DENIED_MSG
     #     }
     #     return jsonify(response_object), 401
     
@@ -35,7 +42,7 @@ def get_all_users(user_id):
         return jsonify(response_object), 200
     except Exception as e:
         logger.error(f"Error getting all users: {str(e)}")
-        logger.exception("Full traceback:")
+        logger.exception(FULL_TRACEBACK_MSG)
         return jsonify({"status": "error", "message": "Internal server error"}), 500
 
 
@@ -51,7 +58,7 @@ def get_single_user(current_user_id, user_id):
         logger.warning(f"User {current_user_id} attempted to get info for user {user_id}")
         response_object = {
             "status": "fail",
-            "message": "You do not have permission to do that."
+            "message": PERMISSION_DENIED_MSG
         }
         return jsonify(response_object), 401
     
@@ -72,7 +79,7 @@ def get_single_user(current_user_id, user_id):
         return jsonify(response_object), 404
     except Exception as e:
         logger.error(f"Error getting user {user_id}: {str(e)}")
-        logger.exception("Full traceback:")
+        logger.exception(FULL_TRACEBACK_MSG)
         return jsonify({"status": "error", "message": "Internal server error"}), 500
 
 
@@ -82,16 +89,16 @@ def add_user(user_id):
     """Add new user (admin only)"""
     logger.info("Adding new user")
     post_data = request.get_json()
-    response_object = {"status": "fail", "message": "Invalid payload."}
+    response_object = {"status": "fail", "message": INVALID_PAYLOAD_MSG}
     
     # Guard invalid/missing JSON payload -> 400 (fixes test_add_user_wrapped_paths)
     data = request.get_json(silent=True)
     if not data or not isinstance(data, dict):
-        return jsonify({"status": "fail", "message": "Invalid payload."}), 400
+        return jsonify({"status": "fail", "message": INVALID_PAYLOAD_MSG}), 400
 
     if not is_admin(user_id):
         logger.warning("Non-admin user attempted to add user")
-        response_object["message"] = "You do not have permission to do that."
+        response_object["message"] = PERMISSION_DENIED_MSG
         return jsonify(response_object), 401
         
     if not post_data:
@@ -104,7 +111,7 @@ def add_user(user_id):
     
     if not all([username, email, password]):
         logger.warning("Missing required fields for add user")
-        response_object["message"] = "Missing required fields: username, email, password"
+        response_object["message"] = MISSING_FIELDS_MSG
         return jsonify(response_object), 400
     
     logger.debug(f"Attempting to add user: {username} with email: {email}")
@@ -122,7 +129,7 @@ def add_user(user_id):
             return jsonify(response_object), 201
         else:
             logger.warning(f"Attempted to add user with existing email or username: {email}, {username}")
-            response_object["message"] = "Sorry. That user already exists."
+            response_object["message"] = USER_EXISTS_MSG
             return jsonify(response_object), 400
     except exc.IntegrityError as e:
         logger.error(f"Database integrity error adding user {email}: {str(e)}")
@@ -130,7 +137,7 @@ def add_user(user_id):
         return jsonify(response_object), 400
     except Exception as e:
         logger.error(f"Error adding user {email}: {str(e)}")
-        logger.exception("Full traceback:")
+        logger.exception(FULL_TRACEBACK_MSG)
         db.session.rollback()
         return jsonify(response_object), 400
 
@@ -141,11 +148,11 @@ def admin_create_user(user_id):
     """Admin create user with custom flags"""
     logger.info("Admin creating new user")
     post_data = request.get_json()
-    response_object = {"status": "fail", "message": "Invalid payload."}
+    response_object = {"status": "fail", "message": INVALID_PAYLOAD_MSG}
     
     if not is_admin(user_id):
         logger.warning("Non-admin user attempted to admin create user")
-        response_object["message"] = "You do not have permission to do that."
+        response_object["message"] = PERMISSION_DENIED_MSG
         return jsonify(response_object), 401
         
     if not post_data:
@@ -160,7 +167,7 @@ def admin_create_user(user_id):
     
     if not all([username, email, password]):
         logger.warning("Missing required fields for admin create user")
-        response_object["message"] = "Missing required fields: username, email, password"
+        response_object["message"] = MISSING_FIELDS_MSG
         return jsonify(response_object), 400
     
     logger.debug(f"Attempting to admin create user: {username} with email: {email}, admin: {admin_flag}, active: {active_flag}")
@@ -178,7 +185,7 @@ def admin_create_user(user_id):
             return jsonify(response_object), 201
         else:
             logger.warning(f"Attempted to admin create user with existing email or username: {email}, {username}")
-            response_object["message"] = "Sorry. That user already exists."
+            response_object["message"] = USER_EXISTS_MSG
             return jsonify(response_object), 400
     except exc.IntegrityError as e:
         logger.error(f"Database integrity error admin creating user {email}: {str(e)}")
@@ -186,7 +193,7 @@ def admin_create_user(user_id):
         return jsonify(response_object), 400
     except Exception as e:
         logger.error(f"Error admin creating user {email}: {str(e)}")
-        logger.exception("Full traceback:")
+        logger.exception(FULL_TRACEBACK_MSG)
         db.session.rollback()
         return jsonify(response_object), 400
 

@@ -7,6 +7,9 @@ from app.logger import get_logger
 # Get logger for this module
 logger = get_logger('auth_api')
 
+# Constants
+FULL_TRACEBACK_MSG = "Full traceback:"
+
 auth_blueprint = Blueprint("auth", __name__)
 
 
@@ -63,12 +66,12 @@ def register_user():
     # handler errors
     except (exc.IntegrityError, ValueError) as e:
         logger.error(f"Database error during registration for {email}: {str(e)}")
-        logger.exception("Full traceback:")
+        logger.exception(FULL_TRACEBACK_MSG)
         db.session.rollback()
         return jsonify(response_object), 400
     except Exception as e:
         logger.error(f"Unexpected error during registration for {email}: {str(e)}")
-        logger.exception("Full traceback:")
+        logger.exception(FULL_TRACEBACK_MSG)
         db.session.rollback()
         return jsonify({"status": "error", "message": "Internal server error"}), 500
 
@@ -128,7 +131,7 @@ def login_user():
             
     except Exception as e:
         logger.error(f"Error during login for {email}: {str(e)}")
-        logger.exception("Full traceback:")
+        logger.exception(FULL_TRACEBACK_MSG)
         response_object["message"] = "Try again."
         return jsonify(response_object), 500
 
@@ -151,7 +154,7 @@ def logout_user(resp):
         
     except Exception as e:
         logger.error(f"Error during logout for user_id {resp}: {str(e)}")
-        logger.exception("Full traceback:")
+        logger.exception(FULL_TRACEBACK_MSG)
         response_object = {"status": "success", "message": "Successfully logged out."}
         return jsonify(response_object), 200  # Still return success for logout
 
@@ -190,7 +193,7 @@ def get_user_status(resp):
         
     except Exception as e:
         logger.error(f"Error getting user status for user_id {resp}: {str(e)}")
-        logger.exception("Full traceback:")
+        logger.exception(FULL_TRACEBACK_MSG)
         response_object = {
             "status": "error",
             "message": "Internal server error"

@@ -6,6 +6,16 @@ from app.logger import get_logger
 # Get logger for this module
 logger = get_logger("auth_utils")
 
+# Constants
+FULL_TRACEBACK_MSG = "Full traceback:"
+INVALID_TOKEN_MSG = "Invalid token. Please log in again."
+PROVIDE_VALID_TOKEN_MSG = "Provide a valid auth token."
+BEARER_TOKEN_MALFORMED_MSG = "Bearer token malformed."
+USER_INACTIVE_MSG = "User account is inactive."
+INVALID_TOKEN_GENERIC_MSG = "Invalid token."
+ADMIN_REQUIRED_MSG = "Admin privileges required."
+SOMETHING_WRONG_MSG = "Something went wrong. Please contact us."
+
 
 def authenticate(f):
     @wraps(f)
@@ -14,33 +24,47 @@ def authenticate(f):
 
         response_object = {
             "status": "fail",
-            "message": "Something went wrong. Please contact us.",
+            "message": SOMETHING_WRONG_MSG,
         }
         code = 401
 
         auth_header = request.headers.get("Authorization")
         if not auth_header:
             logger.warning(f"Missing Authorization header for {f.__name__}")
-            response_object["message"] = "Provide a valid auth token."
+            response_object["message"] = PROVIDE_VALID_TOKEN_MSG
             code = 403
             return jsonify(response_object), code
 
         try:
             auth_token = auth_header.split(" ")[1]
-            logger.debug("Validating auth token")
+            logger.debug(f"Extracted auth token for {f.__name__}")
         except IndexError:
-            logger.warning("Invalid Authorization header format")
-            response_object["message"] = "Invalid token format."
+            logger.warning(f"Invalid Authorization header format for {f.__name__}")
+            response_object["message"] = BEARER_TOKEN_MALFORMED_MSG
+            code = 403
             return jsonify(response_object), code
 
-        user_id = decode_auth_token(str(auth_token))
-        if not user_id:
-            logger.warning("Invalid or expired auth token")
-            response_object["message"] = "Invalid token. Please log in again."
+        resp = User.decode_auth_token(auth_token)
+        logger.debug(f"Token decode result for {f.__name__}: {resp} (type: {type(resp)})")
+
+        if isinstance(resp, str):
+            logger.warning(f"Token decode failed for {f.__name__}: {resp}")
+            response_object["message"] = resp
             return jsonify(response_object), code
 
-        logger.debug(f"Authentication successful for user_id: {user_id}")
-        return f(user_id, *args, **kwargs)
+        user = User.query.filter_by(id=resp).first()
+        if not user:
+            logger.error(f"User not found for decoded token user_id {resp} in {f.__name__}")
+            response_object["message"] = INVALID_TOKEN_GENERIC_MSG
+            return jsonify(response_object), code
+
+        if not user.active:
+            logger.warning(f"Inactive user {user.username} attempted to access {f.__name__}")
+            response_object["message"] = USER_INACTIVE_MSG
+            return jsonify(response_object), code
+
+        logger.debug(f"Authentication successful for user {user.username} in {f.__name__}")
+        return f(resp, *args, **kwargs)
 
     return decorated_function
 
@@ -74,7 +98,7 @@ def decode_auth_token(auth_token):
 
     except Exception as e:
         logger.error(f"Error decoding auth token: {str(e)}")
-        logger.exception("Full traceback:")
+        logger.exception(FULL_TRACEBACK_MSG)
         return None
 
 
@@ -96,48 +120,8 @@ def is_admin(user_id):
 
     except Exception as e:
         logger.error(f"Error checking admin status for user_id {user_id}: {str(e)}")
-        logger.exception("Full traceback:")
+        logger.exception(FULL_TRACEBACK_MSG)
         return False
-
-        auth_header = request.headers.get("Authorization")
-        if not auth_header:
-            logger.warning(f"Missing Authorization header for {f.__name__}")
-            response_object["message"] = "Provide a valid auth token."
-            code = 403
-            return jsonify(response_object), code
-
-        try:
-            auth_token = auth_header.split(" ")[1]
-            logger.debug(f"Extracted auth token for {f.__name__}")
-        except IndexError:
-            logger.warning(f"Invalid Authorization header format for {f.__name__}")
-            response_object["message"] = "Bearer token malformed."
-            code = 403
-            return jsonify(response_object), code
-
-        resp = User.decode_auth_token(auth_token)
-        logger.debug(f"Token decode result for {f.__name__}: {resp} (type: {type(resp)})")
-
-        if isinstance(resp, str):
-            logger.warning(f"Token decode failed for {f.__name__}: {resp}")
-            response_object["message"] = resp
-            return jsonify(response_object), code
-
-        user = User.query.filter_by(id=resp).first()
-        if not user:
-            logger.error(f"User not found for decoded token user_id {resp} in {f.__name__}")
-            response_object["message"] = "Invalid token."
-            return jsonify(response_object), code
-
-        if not user.active:
-            logger.warning(f"Inactive user {user.username} attempted to access {f.__name__}")
-            response_object["message"] = "User account is inactive."
-            return jsonify(response_object), code
-
-        logger.debug(f"Authentication successful for user {user.username} in {f.__name__}")
-        return f(resp, *args, **kwargs)
-
-    return decorated_function
 
 
 def admin_required(f):
@@ -147,14 +131,14 @@ def admin_required(f):
 
         response_object = {
             "status": "fail",
-            "message": "Something went wrong. Please contact us.",
+            "message": SOMETHING_WRONG_MSG,
         }
         code = 401
 
         auth_header = request.headers.get("Authorization")
         if not auth_header:
             logger.warning(f"Missing Authorization header for admin endpoint {f.__name__}")
-            response_object["message"] = "Provide a valid auth token."
+            response_object["message"] = PROVIDE_VALID_TOKEN_MSG
             code = 403
             return jsonify(response_object), code
 
@@ -163,7 +147,7 @@ def admin_required(f):
             logger.debug(f"Extracted auth token for admin endpoint {f.__name__}")
         except IndexError:
             logger.warning(f"Invalid Authorization header format for admin endpoint {f.__name__}")
-            response_object["message"] = "Bearer token malformed."
+            response_object["message"] = BEARER_TOKEN_MALFORMED_MSG
             code = 403
             return jsonify(response_object), code
 
@@ -178,17 +162,17 @@ def admin_required(f):
         user = User.query.filter_by(id=resp).first()
         if not user:
             logger.error(f"User not found for decoded token user_id {resp} in admin endpoint {f.__name__}")
-            response_object["message"] = "Invalid token."
+            response_object["message"] = INVALID_TOKEN_GENERIC_MSG
             return jsonify(response_object), code
 
         if not user.active:
             logger.warning(f"Inactive user {user.username} attempted to access admin endpoint {f.__name__}")
-            response_object["message"] = "User account is inactive."
+            response_object["message"] = USER_INACTIVE_MSG
             return jsonify(response_object), code
 
         if not user.admin:
             logger.warning(f"Non-admin user {user.username} attempted to access admin endpoint {f.__name__}")
-            response_object["message"] = "Admin privileges required."
+            response_object["message"] = ADMIN_REQUIRED_MSG
             code = 403
             return jsonify(response_object), code
 

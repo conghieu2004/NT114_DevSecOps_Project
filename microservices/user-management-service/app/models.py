@@ -12,6 +12,10 @@ bcrypt = Bcrypt()
 # Get logger for this module
 logger = get_logger("models")
 
+# Constants
+FULL_TRACEBACK_MSG = "Full traceback:"
+INVALID_TOKEN_MSG = "Invalid token. Please log in again."
+
 
 class User(db.Model):
     __tablename__ = "users"
@@ -80,7 +84,7 @@ class User(db.Model):
 
         except Exception as e:
             logger.error(f"Failed to encode auth token for user_id {user_id}: {str(e)}")
-            logger.exception("Full traceback:")
+            logger.exception(FULL_TRACEBACK_MSG)
             return e
 
     @staticmethod
@@ -108,16 +112,16 @@ class User(db.Model):
 
         except jwt.InvalidTokenError as e:
             logger.warning(f"Invalid auth token: {str(e)}")
-            return "Invalid token. Please log in again."
+            return INVALID_TOKEN_MSG
 
         except (ValueError, TypeError) as e:
             logger.warning(f"Invalid user_id format in token: {str(e)}")
-            return "Invalid token. Please log in again."
+            return INVALID_TOKEN_MSG
 
         except Exception as e:
             logger.error(f"Unexpected error decoding auth token: {str(e)}")
-            logger.exception("Full traceback:")
-            return "Invalid token. Please log in again."
+            logger.exception(FULL_TRACEBACK_MSG)
+            return INVALID_TOKEN_MSG
 
     def deactivate_user(self):
         """Deactivate user with logging"""
@@ -129,7 +133,7 @@ class User(db.Model):
             logger.info(f"User {self.username} deactivated successfully")
         except Exception as e:
             logger.error(f"Failed to deactivate user {self.username}: {str(e)}")
-            logger.exception("Full traceback:")
+            logger.exception(FULL_TRACEBACK_MSG)
             db.session.rollback()
             raise e
 
@@ -143,6 +147,6 @@ class User(db.Model):
             logger.info(f"User {self.username} reactivated successfully")
         except Exception as e:
             logger.error(f"Failed to reactivate user {self.username}: {str(e)}")
-            logger.exception("Full traceback:")
+            logger.exception(FULL_TRACEBACK_MSG)
             db.session.rollback()
             raise e
