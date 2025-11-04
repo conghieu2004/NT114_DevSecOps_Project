@@ -4,7 +4,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
@@ -16,6 +16,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app/ ./app/
+
+# Create non-root user and group
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Change ownership
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
 
 # Set environment variables
 ENV FLASK_APP=app.main:app

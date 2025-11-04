@@ -23,14 +23,6 @@ def get_all_users(user_id):
     """Get all users"""
     logger.info("Getting all users")
     
-    # if not is_admin(user_id):
-    #     logger.warning("Non-admin user attempted to get all users")
-    #     response_object = {
-    #         "status": "fail",
-    #         "message": PERMISSION_DENIED_MSG
-    #     }
-    #     return jsonify(response_object), 401
-    
     try:
         users = User.query.all()
         logger.debug(f"Found {len(users)} users")

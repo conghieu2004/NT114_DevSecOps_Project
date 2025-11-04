@@ -11,7 +11,7 @@ ENV FLASK_APP=main.py
 ENV FLASK_ENV=development
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     curl \
     && rm -rf /var/lib/apt/lists/*
@@ -25,6 +25,15 @@ COPY . .
 
 # Create logs directory
 RUN mkdir -p logs
+
+# Create non-root user and group
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Change ownership
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
 
 # Expose port
 EXPOSE 5003

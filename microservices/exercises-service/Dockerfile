@@ -10,11 +10,14 @@ ENV PYTHONUNBUFFERED=1
 ENV FLASK_APP=main.py
 ENV FLASK_ENV=development
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Install system dependencies with security best practices
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user and group
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
@@ -23,8 +26,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create logs directory
-RUN mkdir -p logs
+# Create logs directory and set ownership
+RUN mkdir -p logs && chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
 
 # Expose port
 EXPOSE 5002
