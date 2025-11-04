@@ -17,6 +17,16 @@ module "eks_managed_node_group" {
 
   labels = var.labels
 
+  # IAM role configuration
+  create_iam_role = true
+  iam_role_name   = "${var.node_group_name}-role"
+  iam_role_additional_policies = {
+    AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
+
+  # Enable launch template
+  use_custom_launch_template = false
+
   tags = var.tags
 }
 

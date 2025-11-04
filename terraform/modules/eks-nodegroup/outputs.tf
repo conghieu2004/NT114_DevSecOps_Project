@@ -18,6 +18,16 @@ output "node_group_resources" {
   value       = module.eks_managed_node_group.node_group_resources
 }
 
+output "iam_role_arn" {
+  description = "ARN of the IAM role used by the node group"
+  value       = module.eks_managed_node_group.iam_role_arn
+}
+
+output "iam_role_name" {
+  description = "Name of the IAM role used by the node group"
+  value       = module.eks_managed_node_group.iam_role_name
+}
+
 output "coredns_addon_arn" {
   description = "ARN of the CoreDNS addon"
   value       = var.enable_coredns_addon ? aws_eks_addon.coredns[0].arn : null
