@@ -1,5 +1,5 @@
 from sqlalchemy import exc
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request, jsonify
 from app.models import User, db
 from app.utils import authenticate, is_admin
 from app.logger import get_logger
@@ -84,6 +84,11 @@ def add_user(user_id):
     post_data = request.get_json()
     response_object = {"status": "fail", "message": "Invalid payload."}
     
+    # Guard invalid/missing JSON payload -> 400 (fixes test_add_user_wrapped_paths)
+    data = request.get_json(silent=True)
+    if not data or not isinstance(data, dict):
+        return jsonify({"status": "fail", "message": "Invalid payload."}), 400
+
     if not is_admin(user_id):
         logger.warning("Non-admin user attempted to add user")
         response_object["message"] = "You do not have permission to do that."
