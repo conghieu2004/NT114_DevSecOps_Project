@@ -113,3 +113,41 @@ output "configure_kubectl" {
   description = "Command to configure kubectl"
   value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${module.eks_cluster.cluster_name}"
 }
+
+# ECR Outputs
+output "ecr_repository_urls" {
+  description = "Map of ECR repository URLs"
+  value       = module.ecr.repository_urls
+}
+
+output "ecr_repository_arns" {
+  description = "Map of ECR repository ARNs"
+  value       = module.ecr.repository_arns
+}
+
+output "ecr_registry_id" {
+  description = "ECR Registry ID"
+  value       = module.ecr.registry_id
+}
+
+output "ecr_login_command" {
+  description = "Command to login to ECR"
+  value       = module.ecr.ecr_login_command
+}
+
+output "github_actions_user_name" {
+  description = "IAM user name for GitHub Actions"
+  value       = module.ecr.github_actions_user_name
+}
+
+output "github_actions_access_key_id" {
+  description = "Access key ID for GitHub Actions (sensitive)"
+  value       = module.ecr.github_actions_access_key_id
+  sensitive   = true
+}
+
+output "github_actions_secret_access_key" {
+  description = "Secret access key for GitHub Actions (sensitive)"
+  value       = module.ecr.github_actions_secret_access_key
+  sensitive   = true
+}

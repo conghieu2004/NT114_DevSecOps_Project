@@ -136,3 +136,36 @@ module "iam_access" {
 
   depends_on = [module.eks_cluster]
 }
+
+# ECR Module
+module "ecr" {
+  source = "../../modules/ecr"
+
+  project_name = var.project_name
+  environment  = var.environment
+
+  repository_names = [
+    "api-gateway",
+    "exercises-service",
+    "scores-service",
+    "user-management-service",
+    "frontend"
+  ]
+
+  image_tag_mutability = "MUTABLE"
+  scan_on_push         = true
+  encryption_type      = "AES256"
+
+  image_count_to_keep  = 10
+  untagged_image_days  = 7
+
+  create_github_actions_policy = true
+  create_github_actions_user   = true
+
+  tags = merge(
+    var.tags,
+    {
+      Module = "ecr"
+    }
+  )
+}
