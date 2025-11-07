@@ -159,8 +159,9 @@ jobs:
       run:
         working-directory: terraform/environments/${{ github.event.inputs.environment || 'dev' }}
 
-    environment:
-      name: ${{ github.event.inputs.environment || 'dev' }}
+    # Environment approval removed for auto-deployment
+    # environment:
+    #   name: ${{ github.event.inputs.environment || 'dev' }}
 
     steps:
       - name: Checkout repository
@@ -241,8 +242,9 @@ jobs:
       run:
         working-directory: terraform/environments/${{ github.event.inputs.environment || 'dev' }}
 
-    environment:
-      name: ${{ github.event.inputs.environment || 'dev' }}-destroy
+    # Environment approval removed for auto-deployment
+    # environment:
+    #   name: ${{ github.event.inputs.environment || 'dev' }}-destroy
 
     steps:
       - name: Checkout repository
