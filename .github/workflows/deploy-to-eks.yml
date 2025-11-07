@@ -1,0 +1,220 @@
+name: Deploy Applications to EKS
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+        default: 'dev'
+      services:
+        description: 'Services to deploy (comma-separated or "all")'
+        required: true
+        default: 'all'
+
+env:
+  AWS_REGION: us-east-1
+  CLUSTER_NAME: nt114-devsecops-dev
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to EKS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get AWS Account ID
+        id: aws-account
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          echo "account_id=$ACCOUNT_ID" >> $GITHUB_OUTPUT
+          echo "AWS Account ID: $ACCOUNT_ID"
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.12.0'
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.CLUSTER_NAME }}
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Create namespace
+        run: |
+          kubectl create namespace ${{ github.event.inputs.environment }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create ECR Secret
+        run: |
+          kubectl create secret docker-registry ecr-secret \
+            --docker-server=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com \
+            --docker-username=AWS \
+            --docker-password=$(aws ecr get-login-password --region ${{ env.AWS_REGION }}) \
+            --namespace=${{ github.event.inputs.environment }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy PostgreSQL
+        run: |
+          echo "Deploying PostgreSQL database..."
+          kubectl apply -f kubernetes/local/postgres-deployment.yaml -n ${{ github.event.inputs.environment }}
+
+          echo "Waiting for PostgreSQL to be ready..."
+          kubectl wait --for=condition=ready pod -l app=postgres -n ${{ github.event.inputs.environment }} --timeout=300s
+
+      - name: Deploy API Gateway
+        if: contains(github.event.inputs.services, 'all') || contains(github.event.inputs.services, 'api-gateway')
+        run: |
+          echo "Deploying API Gateway..."
+
+          helm upgrade --install api-gateway ./helm/api-gateway \
+            --namespace ${{ github.event.inputs.environment }} \
+            --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/api-gateway \
+            --set image.tag=latest \
+            --set imagePullSecrets[0].name=ecr-secret \
+            --wait --timeout 10m
+
+          echo "✅ API Gateway deployed successfully"
+
+      - name: Deploy User Management Service
+        if: contains(github.event.inputs.services, 'all') || contains(github.event.inputs.services, 'user-management')
+        run: |
+          echo "Deploying User Management Service..."
+
+          helm upgrade --install user-management-service ./helm/user-management-service \
+            --namespace ${{ github.event.inputs.environment }} \
+            --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/user-management-service \
+            --set image.tag=latest \
+            --set imagePullSecrets[0].name=ecr-secret \
+            --wait --timeout 10m
+
+          echo "✅ User Management Service deployed successfully"
+
+      - name: Deploy Exercises Service
+        if: contains(github.event.inputs.services, 'all') || contains(github.event.inputs.services, 'exercises')
+        run: |
+          echo "Deploying Exercises Service..."
+
+          helm upgrade --install exercises-service ./helm/exercises-service \
+            --namespace ${{ github.event.inputs.environment }} \
+            --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/exercises-service \
+            --set image.tag=latest \
+            --set imagePullSecrets[0].name=ecr-secret \
+            --wait --timeout 10m
+
+          echo "✅ Exercises Service deployed successfully"
+
+      - name: Deploy Scores Service
+        if: contains(github.event.inputs.services, 'all') || contains(github.event.inputs.services, 'scores')
+        run: |
+          echo "Deploying Scores Service..."
+
+          helm upgrade --install scores-service ./helm/scores-service \
+            --namespace ${{ github.event.inputs.environment }} \
+            --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/scores-service \
+            --set image.tag=latest \
+            --set imagePullSecrets[0].name=ecr-secret \
+            --wait --timeout 10m
+
+          echo "✅ Scores Service deployed successfully"
+
+      - name: Deploy Frontend
+        if: contains(github.event.inputs.services, 'all') || contains(github.event.inputs.services, 'frontend')
+        run: |
+          echo "Deploying Frontend..."
+
+          helm upgrade --install frontend ./helm/frontend \
+            --namespace ${{ github.event.inputs.environment }} \
+            --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/frontend \
+            --set image.tag=latest \
+            --set imagePullSecrets[0].name=ecr-secret \
+            --wait --timeout 10m
+
+          echo "✅ Frontend deployed successfully"
+
+      - name: Get Service URLs
+        run: |
+          echo "### 🚀 Deployment Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Region:** ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "#### 📋 Deployed Services" >> $GITHUB_STEP_SUMMARY
+          kubectl get deployments -n ${{ github.event.inputs.environment }} >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "#### 🌐 Service Endpoints" >> $GITHUB_STEP_SUMMARY
+          kubectl get services -n ${{ github.event.inputs.environment }} >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "#### 🔗 Ingress URLs" >> $GITHUB_STEP_SUMMARY
+          kubectl get ingress -n ${{ github.event.inputs.environment }} >> $GITHUB_STEP_SUMMARY
+
+      - name: Check Pod Status
+        run: |
+          echo "### Pod Status" >> $GITHUB_STEP_SUMMARY
+          kubectl get pods -n ${{ github.event.inputs.environment }} -o wide >> $GITHUB_STEP_SUMMARY
+
+  verify:
+    name: Verify Deployment
+    runs-on: ubuntu-latest
+    needs: [deploy]
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.CLUSTER_NAME }}
+
+      - name: Verify All Pods Running
+        run: |
+          echo "Waiting for all pods to be ready..."
+          kubectl wait --for=condition=ready pod --all -n ${{ github.event.inputs.environment }} --timeout=600s
+
+          echo "### ✅ All Pods are Running!" >> $GITHUB_STEP_SUMMARY
+          kubectl get pods -n ${{ github.event.inputs.environment }} >> $GITHUB_STEP_SUMMARY
+
+      - name: Run Health Checks
+        run: |
+          echo "### 🏥 Health Check Results" >> $GITHUB_STEP_SUMMARY
+
+          # Test API Gateway health
+          API_GATEWAY_IP=$(kubectl get service api-gateway -n ${{ github.event.inputs.environment }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          if [ ! -z "$API_GATEWAY_IP" ]; then
+            echo "**API Gateway:** $API_GATEWAY_IP" >> $GITHUB_STEP_SUMMARY
+            curl -f http://$API_GATEWAY_IP/health || echo "❌ Health check failed" >> $GITHUB_STEP_SUMMARY
+          fi
