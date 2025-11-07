@@ -1,11 +1,6 @@
-name: Cleanup All AWS Resources
+name: Cleanup AWS Resources by Tag
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/cleanup-resources.yml'
   workflow_dispatch:
 
 env:
@@ -16,12 +11,9 @@ permissions:
   contents: read
 
 jobs:
-  destroy-all:
-    name: Destroy All Resources
+  cleanup:
+    name: Cleanup Resources by Tag
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: terraform/environments/dev
 
     steps:
       - name: Checkout repository
@@ -34,33 +26,26 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-          terraform_wrapper: false
-
-      - name: Clean Terraform Cache
+      - name: Cleanup Resources with Project Tag
         run: |
-          rm -rf .terraform
-          rm -f .terraform.lock.hcl
-          rm -f terraform.tfstate*
+          chmod +x scripts/cleanup-aws-resources.sh
+          scripts/cleanup-aws-resources.sh
 
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Destroy via Terraform (if state exists)
+      - name: Cleanup Summary
         run: |
-          echo "🗑️ Attempting Terraform destroy..."
-          terraform destroy -auto-approve || echo "No Terraform state found, using AWS CLI cleanup"
-        continue-on-error: true
-
-      - name: Cleanup All AWS Resources via AWS CLI
-        run: |
-          chmod +x $GITHUB_WORKSPACE/scripts/cleanup-aws-resources.sh
-          $GITHUB_WORKSPACE/scripts/cleanup-aws-resources.sh
-
-      - name: Verify Cleanup
-        run: |
-          echo "✅ Cleanup completed!"
-          echo "All AWS resources have been deleted."
+          echo "### 🗑️ Cleanup Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag Filter:** Project=NT114_DevSecOps" >> $GITHUB_STEP_SUMMARY
+          echo "**Region:** ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Resources Deleted:**" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ EKS Clusters & Node Groups" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Load Balancers" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ EC2 Instances & ASGs" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ VPCs and Networking" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ IAM Roles" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ EBS Volumes" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ ECR Repositories" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ CloudWatch Logs" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "💡 **Note:** Only resources tagged with Project=NT114_DevSecOps or containing 'nt114' in their name were deleted." >> $GITHUB_STEP_SUMMARY
