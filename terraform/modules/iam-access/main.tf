@@ -34,9 +34,15 @@ resource "aws_iam_role_policy_attachment" "admin_permissions" {
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
 
-# IAM Policy for AssumeRole
+# Try to fetch existing IAM Policy for AssumeRole
+data "aws_iam_policy" "eks_assume_role_policy_existing" {
+  count = var.create_assume_role_policy ? 1 : 0
+  arn   = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.assume_role_policy_name}"
+}
+
+# IAM Policy for AssumeRole (only create if not using existing)
 resource "aws_iam_policy" "eks_assume_role_policy" {
-  count       = var.create_assume_role_policy ? 1 : 0
+  count       = 0 # Disabled - using existing policy
   name        = var.assume_role_policy_name
   description = "Allows users in the group to assume the EKS admin role"
 
@@ -54,11 +60,11 @@ resource "aws_iam_policy" "eks_assume_role_policy" {
   tags = var.tags
 }
 
-# Attach Policy to IAM Group
+# Attach Policy to IAM Group (use existing policy)
 resource "aws_iam_group_policy_attachment" "attach_assume_role_policy" {
   count      = var.create_admin_group && var.create_assume_role_policy ? 1 : 0
   group      = aws_iam_group.admin_group[0].name
-  policy_arn = aws_iam_policy.eks_assume_role_policy[0].arn
+  policy_arn = data.aws_iam_policy.eks_assume_role_policy_existing[0].arn
 }
 
 # EKS Access Entry
