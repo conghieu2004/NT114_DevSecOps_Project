@@ -1,6 +1,15 @@
 terraform {
   required_version = ">= 1.0"
 
+  # S3 Backend for state persistence
+  backend "s3" {
+    bucket         = "nt114-devsecops-terraform-state"
+    key            = "dev/terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "nt114-devsecops-terraform-locks"
+  }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
