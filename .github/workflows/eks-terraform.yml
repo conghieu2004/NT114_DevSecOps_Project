@@ -188,6 +188,12 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
+      - name: Import Existing Resources
+        run: |
+          chmod +x ../../../scripts/import-existing-resources.sh
+          ../../../scripts/import-existing-resources.sh
+        continue-on-error: true
+
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
