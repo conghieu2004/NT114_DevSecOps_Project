@@ -31,8 +31,6 @@ jobs:
         service:
           - name: api-gateway
             path: microservices/api-gateway
-          - name: auth-service
-            path: microservices/auth-service
           - name: exercises-service
             path: microservices/exercises-service
           - name: scores-service
@@ -91,7 +89,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Services Built:**" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ API Gateway" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Auth Service" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Exercises Service" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Scores Service" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ User Management Service" >> $GITHUB_STEP_SUMMARY
