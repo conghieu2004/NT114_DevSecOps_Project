@@ -1,0 +1,5 @@
+# Deployment Trigger
+# This file is used to trigger infrastructure deployment
+# Last deployment: 2025-11-07
+
+Infrastructure will be created with lifecycle rules to reuse existing resources.
