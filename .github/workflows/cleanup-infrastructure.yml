@@ -30,11 +30,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.inputs.confirm == 'DESTROY'
 
-    defaults:
-      run:
-        working-directory: terraform/environments/${{ github.event.inputs.environment }}
-
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: ⚠️ Warning
         run: |
           echo "### ⚠️ DESTROYING INFRASTRUCTURE ⚠️" >> $GITHUB_STEP_SUMMARY
@@ -50,9 +49,6 @@ jobs:
           echo "- ⚠️ ECR Repositories (images will be preserved)" >> $GITHUB_STEP_SUMMARY
           echo "- ⚠️ IAM Roles and Policies" >> $GITHUB_STEP_SUMMARY
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -67,9 +63,11 @@ jobs:
           terraform_wrapper: false
 
       - name: Terraform Init
+        working-directory: terraform/environments/${{ github.event.inputs.environment }}
         run: terraform init
 
       - name: Terraform Destroy
+        working-directory: terraform/environments/${{ github.event.inputs.environment }}
         run: terraform destroy -auto-approve
 
       - name: Cleanup Summary
