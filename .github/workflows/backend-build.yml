@@ -1,0 +1,97 @@
+name: Backend Microservices Build & Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'microservices/**'
+      - '.github/workflows/backend-build.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'microservices/**'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY_ALIAS: nt114-devsecops
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    name: Build and Push Backend Services
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - name: api-gateway
+            path: microservices/api-gateway
+          - name: auth-service
+            path: microservices/auth-service
+          - name: exercises-service
+            path: microservices/exercises-service
+          - name: scores-service
+            path: microservices/scores-service
+          - name: user-management-service
+            path: microservices/user-management-service
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push ${{ matrix.service.name }}
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd ${{ matrix.service.path }}
+
+          docker buildx build --platform linux/amd64 \
+            -t $ECR_REGISTRY/${{ env.ECR_REGISTRY_ALIAS }}/${{ matrix.service.name }}:$IMAGE_TAG \
+            -t $ECR_REGISTRY/${{ env.ECR_REGISTRY_ALIAS }}/${{ matrix.service.name }}:latest \
+            --push .
+
+      - name: Image Summary
+        run: |
+          echo "### ✅ ${{ matrix.service.name }} Built Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Registry:** ${{ steps.login-ecr.outputs.registry }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository:** ${{ env.ECR_REGISTRY_ALIAS }}/${{ matrix.service.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:** ${{ github.sha }}, latest" >> $GITHUB_STEP_SUMMARY
+
+  summary:
+    name: Backend Build Summary
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    if: always()
+
+    steps:
+      - name: Build Summary
+        run: |
+          echo "### Backend Microservices Build Complete 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Services Built:**" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ API Gateway" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Auth Service" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Exercises Service" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Scores Service" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ User Management Service" >> $GITHUB_STEP_SUMMARY
