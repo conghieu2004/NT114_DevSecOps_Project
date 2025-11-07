@@ -1,4 +1,5 @@
 # VPC Module
+# Trigger EKS cluster deployment - 2025-01-07
 module "vpc" {
   source = "../../modules/vpc"
 
