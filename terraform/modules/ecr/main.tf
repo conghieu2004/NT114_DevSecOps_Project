@@ -1,4 +1,5 @@
 # ECR Repositories for microservices
+# If repository already exists, this will try to adopt it (may need manual import)
 resource "aws_ecr_repository" "repositories" {
   for_each = toset(var.repository_names)
 
@@ -21,6 +22,15 @@ resource "aws_ecr_repository" "repositories" {
       Environment = var.environment
     }
   )
+
+  lifecycle {
+    # Ignore changes to avoid recreating existing resources
+    ignore_changes = [
+      tags,
+      image_scanning_configuration,
+      encryption_configuration
+    ]
+  }
 }
 
 # ECR Lifecycle Policy
@@ -62,6 +72,7 @@ resource "aws_ecr_lifecycle_policy" "lifecycle_policy" {
 }
 
 # IAM Policy for GitHub Actions to push to ECR
+# If policy already exists, it will be adopted (may need manual import)
 resource "aws_iam_policy" "github_actions_ecr_policy" {
   count = var.create_github_actions_policy ? 1 : 0
 
@@ -108,6 +119,10 @@ resource "aws_iam_policy" "github_actions_ecr_policy" {
       Name = "${var.project_name}-github-actions-ecr-policy"
     }
   )
+
+  lifecycle {
+    ignore_changes = [tags, policy]
+  }
 }
 
 # IAM User for GitHub Actions (optional)
@@ -122,6 +137,10 @@ resource "aws_iam_user" "github_actions_user" {
       Name = "${var.project_name}-github-actions-user"
     }
   )
+
+  lifecycle {
+    ignore_changes = [tags]
+  }
 }
 
 # Attach ECR policy to GitHub Actions user
