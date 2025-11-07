@@ -179,18 +179,14 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
-      - name: Setup Terraform Backend
-        run: |
-          chmod +x ../../../scripts/setup-terraform-backend.sh
-          ../../../scripts/setup-terraform-backend.sh
-
       - name: Clean Terraform Cache
         run: |
           rm -rf .terraform
           rm -f .terraform.lock.hcl
+          rm -f terraform.tfstate*
 
       - name: Terraform Init
-        run: terraform init -reconfigure
+        run: terraform init
 
       - name: Import Existing Resources
         run: |
