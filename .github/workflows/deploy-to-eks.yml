@@ -130,7 +130,6 @@ jobs:
             --namespace ${{ github.event.inputs.environment }} \
             --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/api-gateway \
             --set image.tag=latest \
-            --set imagePullSecrets[0].name=ecr-secret \
             --wait --timeout 10m
 
           echo "✅ API Gateway deployed successfully"
@@ -144,7 +143,6 @@ jobs:
             --namespace ${{ github.event.inputs.environment }} \
             --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/user-management-service \
             --set image.tag=latest \
-            --set imagePullSecrets[0].name=ecr-secret \
             --wait --timeout 10m
 
           echo "✅ User Management Service deployed successfully"
@@ -158,7 +156,6 @@ jobs:
             --namespace ${{ github.event.inputs.environment }} \
             --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/exercises-service \
             --set image.tag=latest \
-            --set imagePullSecrets[0].name=ecr-secret \
             --wait --timeout 10m
 
           echo "✅ Exercises Service deployed successfully"
@@ -172,7 +169,6 @@ jobs:
             --namespace ${{ github.event.inputs.environment }} \
             --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/scores-service \
             --set image.tag=latest \
-            --set imagePullSecrets[0].name=ecr-secret \
             --wait --timeout 10m
 
           echo "✅ Scores Service deployed successfully"
@@ -186,7 +182,6 @@ jobs:
             --namespace ${{ github.event.inputs.environment }} \
             --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/frontend \
             --set image.tag=latest \
-            --set imagePullSecrets[0].name=ecr-secret \
             --wait --timeout 10m
 
           echo "✅ Frontend deployed successfully"
