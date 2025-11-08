@@ -13,16 +13,8 @@ data:
         CREATE DATABASE scores_db;
     EOSQL
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: postgres-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
+# PVC removed - using emptyDir for testing
+# Note: Data will be lost when pod restarts
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -69,8 +61,7 @@ spec:
             memory: 256Mi
       volumes:
       - name: postgres-storage
-        persistentVolumeClaim:
-          claimName: postgres-pvc
+        emptyDir: {}
       - name: init-script
         configMap:
           name: postgres-init
