@@ -107,6 +107,24 @@ jobs:
 
           echo "ECR secret created. Note: Ensure AWS credentials have access to account 767900165633 ECR."
 
+      - name: Cleanup Stuck Helm Releases
+        run: |
+          echo "Checking for stuck Helm releases..."
+
+          SERVICES=("api-gateway" "user-management-service" "exercises-service" "scores-service" "frontend")
+
+          for service in "${SERVICES[@]}"; do
+            if helm status "$service" -n ${{ github.event.inputs.environment }} 2>/dev/null | grep -q "STATUS: pending"; then
+              echo "⚠️ Found stuck release: $service. Cleaning up..."
+              helm uninstall "$service" -n ${{ github.event.inputs.environment }} --wait || true
+            elif helm status "$service" -n ${{ github.event.inputs.environment }} 2>/dev/null | grep -q "STATUS: failed"; then
+              echo "⚠️ Found failed release: $service. Cleaning up..."
+              helm uninstall "$service" -n ${{ github.event.inputs.environment }} --wait || true
+            fi
+          done
+
+          echo "✅ Cleanup complete"
+
       - name: Deploy PostgreSQL
         id: deploy-postgres
         run: |
