@@ -40,12 +40,15 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Get AWS Account ID
+      - name: Set ECR Account ID
         id: aws-account
         run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          # Hard-coded to match ECR repository location
+          ACCOUNT_ID="767900165633"
           echo "account_id=$ACCOUNT_ID" >> $GITHUB_OUTPUT
-          echo "AWS Account ID: $ACCOUNT_ID"
+          echo "ECR Account ID (hard-coded): $ACCOUNT_ID"
+          echo ""
+          echo "Current AWS Account: $(aws sts get-caller-identity --query Account --output text)"
 
       - name: Install kubectl
         uses: azure/setup-kubectl@v3
