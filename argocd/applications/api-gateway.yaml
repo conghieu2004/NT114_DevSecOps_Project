@@ -19,7 +19,7 @@ spec:
         - name: image.tag
           value: latest
         - name: image.repository
-          value: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/api-gateway
+          value: 039612870452.dkr.ecr.us-east-1.amazonaws.com/api-gateway
 
   destination:
     server: https://kubernetes.default.svc
