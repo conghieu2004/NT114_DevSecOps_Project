@@ -19,7 +19,7 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  CLUSTER_NAME: nt114-devsecops-dev
+  CLUSTER_NAME: eks-1
 
 permissions:
   contents: read
