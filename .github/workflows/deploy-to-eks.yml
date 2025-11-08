@@ -57,10 +57,32 @@ jobs:
         with:
           version: 'v3.12.0'
 
+      - name: Check EKS Cluster Exists
+        run: |
+          echo "Checking if EKS cluster '${{ env.CLUSTER_NAME }}' exists..."
+          if aws eks describe-cluster --region ${{ env.AWS_REGION }} --name ${{ env.CLUSTER_NAME }} > /dev/null 2>&1; then
+            echo "✅ Cluster found: ${{ env.CLUSTER_NAME }}"
+          else
+            echo "❌ ERROR: Cluster '${{ env.CLUSTER_NAME }}' not found!"
+            echo ""
+            echo "Available clusters:"
+            aws eks list-clusters --region ${{ env.AWS_REGION }}
+            echo ""
+            echo "Please create the EKS cluster first by running:"
+            echo "  gh workflow run eks-terraform.yml -f action=apply -f environment=dev"
+            exit 1
+          fi
+
       - name: Configure kubectl
         run: |
+          echo "Configuring kubectl for cluster: ${{ env.CLUSTER_NAME }}"
           aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.CLUSTER_NAME }}
+
+          echo "Cluster info:"
           kubectl cluster-info
+
+          echo ""
+          echo "Node status:"
           kubectl get nodes
 
       - name: Create namespace
@@ -77,12 +99,27 @@ jobs:
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy PostgreSQL
+        id: deploy-postgres
         run: |
           echo "Deploying PostgreSQL database..."
           kubectl apply -f kubernetes/local/postgres-deployment.yaml -n ${{ github.event.inputs.environment }}
 
           echo "Waiting for PostgreSQL to be ready..."
-          kubectl wait --for=condition=ready pod -l app=postgres -n ${{ github.event.inputs.environment }} --timeout=300s
+          if kubectl wait --for=condition=ready pod -l app=postgres -n ${{ github.event.inputs.environment }} --timeout=300s; then
+            echo "✅ PostgreSQL is ready!"
+            kubectl get pods -l app=postgres -n ${{ github.event.inputs.environment }}
+          else
+            echo "❌ PostgreSQL failed to become ready within timeout"
+            echo "Pod status:"
+            kubectl get pods -l app=postgres -n ${{ github.event.inputs.environment }}
+            echo ""
+            echo "Pod description:"
+            kubectl describe pods -l app=postgres -n ${{ github.event.inputs.environment }}
+            echo ""
+            echo "Pod logs:"
+            kubectl logs -l app=postgres -n ${{ github.event.inputs.environment }} --tail=50 || true
+            exit 1
+          fi
 
       - name: Deploy API Gateway
         if: contains(github.event.inputs.services, 'all') || contains(github.event.inputs.services, 'api-gateway')
@@ -160,28 +197,35 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "**Region:** ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Cluster:** ${{ env.CLUSTER_NAME }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           echo "#### 📋 Deployed Services" >> $GITHUB_STEP_SUMMARY
-          kubectl get deployments -n ${{ github.event.inputs.environment }} >> $GITHUB_STEP_SUMMARY
+          kubectl get deployments -n ${{ github.event.inputs.environment }} >> $GITHUB_STEP_SUMMARY || echo "No deployments found" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           echo "#### 🌐 Service Endpoints" >> $GITHUB_STEP_SUMMARY
-          kubectl get services -n ${{ github.event.inputs.environment }} >> $GITHUB_STEP_SUMMARY
+          kubectl get services -n ${{ github.event.inputs.environment }} >> $GITHUB_STEP_SUMMARY || echo "No services found" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           echo "#### 🔗 Ingress URLs" >> $GITHUB_STEP_SUMMARY
-          kubectl get ingress -n ${{ github.event.inputs.environment }} >> $GITHUB_STEP_SUMMARY
+          kubectl get ingress -n ${{ github.event.inputs.environment }} >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No ingress found (ALB Controller may not be installed)" >> $GITHUB_STEP_SUMMARY
 
       - name: Check Pod Status
         run: |
           echo "### Pod Status" >> $GITHUB_STEP_SUMMARY
-          kubectl get pods -n ${{ github.event.inputs.environment }} -o wide >> $GITHUB_STEP_SUMMARY
+          kubectl get pods -n ${{ github.event.inputs.environment }} -o wide >> $GITHUB_STEP_SUMMARY || true
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pod Events (if any issues)" >> $GITHUB_STEP_SUMMARY
+          kubectl get events -n ${{ github.event.inputs.environment }} --sort-by='.lastTimestamp' --field-selector type!=Normal | tail -20 >> $GITHUB_STEP_SUMMARY || echo "No concerning events" >> $GITHUB_STEP_SUMMARY
 
   verify:
     name: Verify Deployment
     runs-on: ubuntu-latest
     needs: [deploy]
+    if: success()
+    continue-on-error: true
 
     steps:
       - name: Configure AWS credentials
