@@ -92,14 +92,20 @@ jobs:
         run: |
           kubectl create namespace ${{ github.event.inputs.environment }} --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Create ECR Secret
+      - name: Create ECR Secret (Cross-Account)
         run: |
+          # Note: This assumes GitHub Actions AWS credentials have permission to access ECR in account 767900165633
+          # If using different accounts, ensure proper IAM permissions are configured
+
+          echo "Creating ECR secret for account 767900165633..."
           kubectl create secret docker-registry ecr-secret \
-            --docker-server=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com \
+            --docker-server=767900165633.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com \
             --docker-username=AWS \
             --docker-password=$(aws ecr get-login-password --region ${{ env.AWS_REGION }}) \
             --namespace=${{ github.event.inputs.environment }} \
             --dry-run=client -o yaml | kubectl apply -f -
+
+          echo "ECR secret created. Note: Ensure AWS credentials have access to account 767900165633 ECR."
 
       - name: Deploy PostgreSQL
         id: deploy-postgres
