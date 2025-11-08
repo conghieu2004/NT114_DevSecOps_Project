@@ -153,13 +153,28 @@ jobs:
         run: |
           echo "Deploying API Gateway..."
 
-          helm upgrade --install api-gateway ./helm/api-gateway \
+          if helm upgrade --install api-gateway ./helm/api-gateway \
             --namespace ${{ github.event.inputs.environment }} \
             --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/api-gateway \
             --set image.tag=latest \
-            --wait --timeout 10m
-
-          echo "✅ API Gateway deployed successfully"
+            --wait --timeout 10m; then
+            echo "✅ API Gateway deployed successfully"
+          else
+            echo "❌ API Gateway deployment failed!"
+            echo ""
+            echo "=== POD STATUS ==="
+            kubectl get pods -l app.kubernetes.io/name=api-gateway -n ${{ github.event.inputs.environment }} || true
+            echo ""
+            echo "=== POD DESCRIBE ==="
+            kubectl describe pod -l app.kubernetes.io/name=api-gateway -n ${{ github.event.inputs.environment }} || true
+            echo ""
+            echo "=== POD LOGS ==="
+            kubectl logs -l app.kubernetes.io/name=api-gateway -n ${{ github.event.inputs.environment }} --tail=100 || true
+            echo ""
+            echo "=== EVENTS ==="
+            kubectl get events -n ${{ github.event.inputs.environment }} --sort-by='.lastTimestamp' --field-selector involvedObject.kind=Pod | grep api-gateway | tail -20 || true
+            exit 1
+          fi
 
       - name: Deploy User Management Service
         if: contains(github.event.inputs.services, 'all') || contains(github.event.inputs.services, 'user-management')
