@@ -157,7 +157,7 @@ jobs:
             --namespace ${{ github.event.inputs.environment }} \
             --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/api-gateway \
             --set image.tag=latest \
-            --wait --timeout 10m; then
+            --wait --timeout 5m; then
             echo "✅ API Gateway deployed successfully"
           else
             echo "❌ API Gateway deployment failed!"
