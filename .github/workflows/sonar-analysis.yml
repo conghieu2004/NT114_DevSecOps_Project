@@ -1,11 +1,13 @@
 name: SonarQube Analysis (frontend and microservices)
 on:
-  push:
-    branches:
-      - main
+  # Disabled auto-trigger to prevent running on every push
+  # push:
+  #   branches:
+  #     - main
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 jobs:
   sonar:
     name: SonarQube Scan
