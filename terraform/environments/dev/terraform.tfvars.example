@@ -56,7 +56,8 @@ resolve_conflicts_on_update     = "OVERWRITE"
 
 # ALB Controller Configuration
 enable_alb_controller     = true
-enable_ebs_csi_controller = false
+enable_ebs_csi_controller = true
+ebs_csi_addon_version     = "v1.36.0-eksbuild.1"
 
 helm_release_name     = "aws-load-balancer-controller"
 helm_namespace        = "kube-system"

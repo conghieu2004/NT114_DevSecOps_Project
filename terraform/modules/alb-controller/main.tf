@@ -27,6 +27,26 @@ data "aws_iam_policy_document" "ebs_controller_assume_role_policy" {
   }
 }
 
+# IAM role for EBS CSI driver
+resource "aws_iam_role" "ebs_csi_controller" {
+  count = var.enable_ebs_csi_controller ? 1 : 0
+
+  name               = "${var.cluster_name}-ebs-csi-controller"
+  assume_role_policy = data.aws_iam_policy_document.ebs_controller_assume_role_policy[0].json
+
+  tags = {
+    Name = "${var.cluster_name}-ebs-csi-controller"
+  }
+}
+
+# Attach AWS managed EBS CSI driver policy
+resource "aws_iam_role_policy_attachment" "ebs_csi_controller" {
+  count = var.enable_ebs_csi_controller ? 1 : 0
+
+  role       = aws_iam_role.ebs_csi_controller[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
+
 # Helm release for AWS Load Balancer Controller
 resource "helm_release" "aws_load_balancer_controller" {
   count = var.enable_alb_controller ? 1 : 0

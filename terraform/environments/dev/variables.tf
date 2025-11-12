@@ -219,6 +219,12 @@ variable "enable_ebs_csi_controller" {
   default     = false
 }
 
+variable "ebs_csi_addon_version" {
+  description = "Version of the EBS CSI driver addon (leave null for latest)"
+  type        = string
+  default     = "v1.36.0-eksbuild.1"
+}
+
 variable "helm_release_name" {
   description = "Name of the Helm release"
   type        = string

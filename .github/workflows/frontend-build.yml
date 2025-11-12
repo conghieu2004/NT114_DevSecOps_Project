@@ -65,3 +65,13 @@ jobs:
           echo "**Tags:** ${{ github.sha }}, latest" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ Frontend image successfully pushed to ECR" >> $GITHUB_STEP_SUMMARY
+
+  deploy-dev:
+    name: Auto-deploy to Dev
+    needs: [build-and-push]
+    if: github.ref == 'refs/heads/main' && success()
+    uses: ./.github/workflows/deploy-to-eks.yml
+    secrets: inherit
+    with:
+      environment: dev
+      services: frontend

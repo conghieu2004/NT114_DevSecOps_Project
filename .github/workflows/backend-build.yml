@@ -92,3 +92,13 @@ jobs:
           echo "- ✅ Exercises Service" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Scores Service" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ User Management Service" >> $GITHUB_STEP_SUMMARY
+
+  deploy-dev:
+    name: Auto-deploy to Dev
+    needs: [build-and-push]
+    if: github.ref == 'refs/heads/main' && success()
+    uses: ./.github/workflows/deploy-to-eks.yml
+    secrets: inherit
+    with:
+      environment: dev
+      services: api-gateway,user-management-service,exercises-service,scores-service

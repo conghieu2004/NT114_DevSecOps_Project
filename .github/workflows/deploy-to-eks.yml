@@ -16,6 +16,18 @@ on:
         description: 'Services to deploy (comma-separated or "all")'
         required: true
         default: 'all'
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: false
+        type: string
+        default: 'dev'
+      services:
+        description: 'Services to deploy (comma-separated or "all")'
+        required: false
+        type: string
+        default: 'all'
 
 env:
   AWS_REGION: us-east-1
@@ -91,6 +103,14 @@ jobs:
       - name: Create namespace
         run: |
           kubectl create namespace ${{ github.event.inputs.environment }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create StorageClass for EBS
+        run: |
+          echo "Creating EBS StorageClass..."
+          kubectl apply -f kubernetes/local/storage-class.yaml
+
+          echo "✅ StorageClass created"
+          kubectl get storageclass ebs-gp3-encrypted
 
       - name: Create ECR Secret (Cross-Account)
         run: |

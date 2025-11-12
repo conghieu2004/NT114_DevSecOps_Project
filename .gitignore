@@ -31,5 +31,11 @@ Thumbs.db
 .env
 .env.local
 
-# IDE settings
+# IDE settings & AI tools
 .claude/
+.opencode/
+.repomixignore
+CLAUDE.md
+plans/
+*.repomix.txt
+*.repomix.xml

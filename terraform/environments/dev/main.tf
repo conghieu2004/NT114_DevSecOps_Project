@@ -23,7 +23,7 @@ module "vpc" {
   )
 }
 
-# EKS Cluster Module
+# EKS Cluster Module (initial creation without EBS CSI addon)
 module "eks_cluster" {
   source = "../../modules/eks-cluster"
 
@@ -105,6 +105,24 @@ module "alb_controller" {
   helm_chart_version     = var.helm_chart_version
   service_account_name   = var.service_account_name
   additional_helm_values = var.additional_helm_values
+}
+
+# EBS CSI Driver Addon (added after IAM role is created)
+resource "aws_eks_addon" "ebs_csi_driver" {
+  count = var.enable_ebs_csi_controller ? 1 : 0
+
+  cluster_name             = module.eks_cluster.cluster_name
+  addon_name               = "aws-ebs-csi-driver"
+  addon_version            = var.ebs_csi_addon_version
+  service_account_role_arn = module.alb_controller.ebs_csi_controller_role_arn
+
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+
+  depends_on = [
+    module.eks_nodegroup,
+    module.alb_controller
+  ]
 }
 
 # IAM Access Control Module
