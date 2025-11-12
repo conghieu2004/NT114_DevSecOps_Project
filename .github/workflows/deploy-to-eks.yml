@@ -56,9 +56,9 @@ jobs:
         id: aws-account
         run: |
           # Hard-coded to match ECR repository location
-          ACCOUNT_ID="767900165633"
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           echo "account_id=$ACCOUNT_ID" >> $GITHUB_OUTPUT
-          echo "ECR Account ID (hard-coded): $ACCOUNT_ID"
+          echo "ECR Account ID (dynamic): $ACCOUNT_ID"
           echo ""
           echo "Current AWS Account: $(aws sts get-caller-identity --query Account --output text)"
 
@@ -114,18 +114,18 @@ jobs:
 
       - name: Create ECR Secret (Cross-Account)
         run: |
-          # Note: This assumes GitHub Actions AWS credentials have permission to access ECR in account 767900165633
+          # Note: This assumes GitHub Actions AWS credentials have permission to access ECR in account ${{ steps.aws-account.outputs.account_id }}
           # If using different accounts, ensure proper IAM permissions are configured
 
-          echo "Creating ECR secret for account 767900165633..."
+          echo "Creating ECR secret for account ${{ steps.aws-account.outputs.account_id }}..."
           kubectl create secret docker-registry ecr-secret \
-            --docker-server=767900165633.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com \
+            --docker-server=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com \
             --docker-username=AWS \
             --docker-password=$(aws ecr get-login-password --region ${{ env.AWS_REGION }}) \
             --namespace=${{ github.event.inputs.environment }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-          echo "ECR secret created. Note: Ensure AWS credentials have access to account 767900165633 ECR."
+          echo "ECR secret created. Note: Ensure AWS credentials have access to account ${{ steps.aws-account.outputs.account_id }} ECR."
 
       - name: Cleanup Stuck Helm Releases
         run: |

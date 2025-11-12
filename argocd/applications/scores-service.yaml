@@ -19,7 +19,7 @@ spec:
         - name: image.tag
           value: latest
         - name: image.repository
-          value: 767900165633.dkr.ecr.us-east-1.amazonaws.com/nt114-devsecops/scores-service
+          value: 039612870452.dkr.ecr.us-east-1.amazonaws.com/nt114-devsecops/scores-service
 
   destination:
     server: https://kubernetes.default.svc

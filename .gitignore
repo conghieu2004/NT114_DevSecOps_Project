@@ -39,3 +39,8 @@ CLAUDE.md
 plans/
 *.repomix.txt
 *.repomix.xml
+
+# Credentials (NEVER COMMIT)
+*credentials*.txt
+.github-credentials*
+*-DO-NOT-COMMIT*
