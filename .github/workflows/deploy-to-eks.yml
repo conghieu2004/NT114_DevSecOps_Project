@@ -102,7 +102,7 @@ jobs:
 
       - name: Create namespace
         run: |
-          kubectl create namespace ${{ github.event.inputs.environment }} --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace ${{ inputs.environment }} --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Create StorageClass for EBS
         run: |
@@ -122,7 +122,7 @@ jobs:
             --docker-server=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com \
             --docker-username=AWS \
             --docker-password=$(aws ecr get-login-password --region ${{ env.AWS_REGION }}) \
-            --namespace=${{ github.event.inputs.environment }} \
+            --namespace=${{ inputs.environment }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
           echo "ECR secret created. Note: Ensure AWS credentials have access to account ${{ steps.aws-account.outputs.account_id }} ECR."
@@ -134,12 +134,12 @@ jobs:
           SERVICES=("api-gateway" "user-management-service" "exercises-service" "scores-service" "frontend")
 
           for service in "${SERVICES[@]}"; do
-            if helm status "$service" -n ${{ github.event.inputs.environment }} 2>/dev/null | grep -q "STATUS: pending"; then
+            if helm status "$service" -n ${{ inputs.environment }} 2>/dev/null | grep -q "STATUS: pending"; then
               echo "⚠️ Found stuck release: $service. Cleaning up..."
-              helm uninstall "$service" -n ${{ github.event.inputs.environment }} --wait || true
-            elif helm status "$service" -n ${{ github.event.inputs.environment }} 2>/dev/null | grep -q "STATUS: failed"; then
+              helm uninstall "$service" -n ${{ inputs.environment }} --wait || true
+            elif helm status "$service" -n ${{ inputs.environment }} 2>/dev/null | grep -q "STATUS: failed"; then
               echo "⚠️ Found failed release: $service. Cleaning up..."
-              helm uninstall "$service" -n ${{ github.event.inputs.environment }} --wait || true
+              helm uninstall "$service" -n ${{ inputs.environment }} --wait || true
             fi
           done
 
@@ -149,32 +149,32 @@ jobs:
         id: deploy-postgres
         run: |
           echo "Deploying PostgreSQL database..."
-          kubectl apply -f kubernetes/local/postgres-deployment.yaml -n ${{ github.event.inputs.environment }}
+          kubectl apply -f kubernetes/local/postgres-deployment.yaml -n ${{ inputs.environment }}
 
           echo "Waiting for PostgreSQL to be ready..."
-          if kubectl wait --for=condition=ready pod -l app=postgres -n ${{ github.event.inputs.environment }} --timeout=300s; then
+          if kubectl wait --for=condition=ready pod -l app=postgres -n ${{ inputs.environment }} --timeout=300s; then
             echo "✅ PostgreSQL is ready!"
-            kubectl get pods -l app=postgres -n ${{ github.event.inputs.environment }}
+            kubectl get pods -l app=postgres -n ${{ inputs.environment }}
           else
             echo "❌ PostgreSQL failed to become ready within timeout"
             echo "Pod status:"
-            kubectl get pods -l app=postgres -n ${{ github.event.inputs.environment }}
+            kubectl get pods -l app=postgres -n ${{ inputs.environment }}
             echo ""
             echo "Pod description:"
-            kubectl describe pods -l app=postgres -n ${{ github.event.inputs.environment }}
+            kubectl describe pods -l app=postgres -n ${{ inputs.environment }}
             echo ""
             echo "Pod logs:"
-            kubectl logs -l app=postgres -n ${{ github.event.inputs.environment }} --tail=50 || true
+            kubectl logs -l app=postgres -n ${{ inputs.environment }} --tail=50 || true
             exit 1
           fi
 
       - name: Deploy API Gateway
-        if: contains(github.event.inputs.services, 'all') || contains(github.event.inputs.services, 'api-gateway')
+        if: contains(inputs.services, 'all') || contains(inputs.services, 'api-gateway')
         run: |
           echo "Deploying API Gateway..."
 
           if helm upgrade --install api-gateway ./helm/api-gateway \
-            --namespace ${{ github.event.inputs.environment }} \
+            --namespace ${{ inputs.environment }} \
             --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/api-gateway \
             --set image.tag=latest \
             --wait --timeout 5m; then
@@ -183,26 +183,26 @@ jobs:
             echo "❌ API Gateway deployment failed!"
             echo ""
             echo "=== POD STATUS ==="
-            kubectl get pods -l app.kubernetes.io/name=api-gateway -n ${{ github.event.inputs.environment }} || true
+            kubectl get pods -l app.kubernetes.io/name=api-gateway -n ${{ inputs.environment }} || true
             echo ""
             echo "=== POD DESCRIBE ==="
-            kubectl describe pod -l app.kubernetes.io/name=api-gateway -n ${{ github.event.inputs.environment }} || true
+            kubectl describe pod -l app.kubernetes.io/name=api-gateway -n ${{ inputs.environment }} || true
             echo ""
             echo "=== POD LOGS ==="
-            kubectl logs -l app.kubernetes.io/name=api-gateway -n ${{ github.event.inputs.environment }} --tail=100 || true
+            kubectl logs -l app.kubernetes.io/name=api-gateway -n ${{ inputs.environment }} --tail=100 || true
             echo ""
             echo "=== EVENTS ==="
-            kubectl get events -n ${{ github.event.inputs.environment }} --sort-by='.lastTimestamp' --field-selector involvedObject.kind=Pod | grep api-gateway | tail -20 || true
+            kubectl get events -n ${{ inputs.environment }} --sort-by='.lastTimestamp' --field-selector involvedObject.kind=Pod | grep api-gateway | tail -20 || true
             exit 1
           fi
 
       - name: Deploy User Management Service
-        if: contains(github.event.inputs.services, 'all') || contains(github.event.inputs.services, 'user-management')
+        if: contains(inputs.services, 'all') || contains(inputs.services, 'user-management-service')
         run: |
           echo "Deploying User Management Service..."
 
           helm upgrade --install user-management-service ./helm/user-management-service \
-            --namespace ${{ github.event.inputs.environment }} \
+            --namespace ${{ inputs.environment }} \
             --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/user-management-service \
             --set image.tag=latest \
             --wait --timeout 10m
@@ -210,12 +210,12 @@ jobs:
           echo "✅ User Management Service deployed successfully"
 
       - name: Deploy Exercises Service
-        if: contains(github.event.inputs.services, 'all') || contains(github.event.inputs.services, 'exercises')
+        if: contains(inputs.services, 'all') || contains(inputs.services, 'exercises-service')
         run: |
           echo "Deploying Exercises Service..."
 
           helm upgrade --install exercises-service ./helm/exercises-service \
-            --namespace ${{ github.event.inputs.environment }} \
+            --namespace ${{ inputs.environment }} \
             --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/exercises-service \
             --set image.tag=latest \
             --wait --timeout 10m
@@ -223,12 +223,12 @@ jobs:
           echo "✅ Exercises Service deployed successfully"
 
       - name: Deploy Scores Service
-        if: contains(github.event.inputs.services, 'all') || contains(github.event.inputs.services, 'scores')
+        if: contains(inputs.services, 'all') || contains(inputs.services, 'scores-service')
         run: |
           echo "Deploying Scores Service..."
 
           helm upgrade --install scores-service ./helm/scores-service \
-            --namespace ${{ github.event.inputs.environment }} \
+            --namespace ${{ inputs.environment }} \
             --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/scores-service \
             --set image.tag=latest \
             --wait --timeout 10m
@@ -236,12 +236,12 @@ jobs:
           echo "✅ Scores Service deployed successfully"
 
       - name: Deploy Frontend
-        if: contains(github.event.inputs.services, 'all') || contains(github.event.inputs.services, 'frontend')
+        if: contains(inputs.services, 'all') || contains(inputs.services, 'frontend')
         run: |
           echo "Deploying Frontend..."
 
           helm upgrade --install frontend ./helm/frontend \
-            --namespace ${{ github.event.inputs.environment }} \
+            --namespace ${{ inputs.environment }} \
             --set image.repository=${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nt114-devsecops/frontend \
             --set image.tag=latest \
             --wait --timeout 10m
@@ -252,30 +252,30 @@ jobs:
         run: |
           echo "### 🚀 Deployment Complete!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "**Region:** ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
           echo "**Cluster:** ${{ env.CLUSTER_NAME }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           echo "#### 📋 Deployed Services" >> $GITHUB_STEP_SUMMARY
-          kubectl get deployments -n ${{ github.event.inputs.environment }} >> $GITHUB_STEP_SUMMARY || echo "No deployments found" >> $GITHUB_STEP_SUMMARY
+          kubectl get deployments -n ${{ inputs.environment }} >> $GITHUB_STEP_SUMMARY || echo "No deployments found" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           echo "#### 🌐 Service Endpoints" >> $GITHUB_STEP_SUMMARY
-          kubectl get services -n ${{ github.event.inputs.environment }} >> $GITHUB_STEP_SUMMARY || echo "No services found" >> $GITHUB_STEP_SUMMARY
+          kubectl get services -n ${{ inputs.environment }} >> $GITHUB_STEP_SUMMARY || echo "No services found" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           echo "#### 🔗 Ingress URLs" >> $GITHUB_STEP_SUMMARY
-          kubectl get ingress -n ${{ github.event.inputs.environment }} >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No ingress found (ALB Controller may not be installed)" >> $GITHUB_STEP_SUMMARY
+          kubectl get ingress -n ${{ inputs.environment }} >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No ingress found (ALB Controller may not be installed)" >> $GITHUB_STEP_SUMMARY
 
       - name: Check Pod Status
         run: |
           echo "### Pod Status" >> $GITHUB_STEP_SUMMARY
-          kubectl get pods -n ${{ github.event.inputs.environment }} -o wide >> $GITHUB_STEP_SUMMARY || true
+          kubectl get pods -n ${{ inputs.environment }} -o wide >> $GITHUB_STEP_SUMMARY || true
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Pod Events (if any issues)" >> $GITHUB_STEP_SUMMARY
-          kubectl get events -n ${{ github.event.inputs.environment }} --sort-by='.lastTimestamp' --field-selector type!=Normal | tail -20 >> $GITHUB_STEP_SUMMARY || echo "No concerning events" >> $GITHUB_STEP_SUMMARY
+          kubectl get events -n ${{ inputs.environment }} --sort-by='.lastTimestamp' --field-selector type!=Normal | tail -20 >> $GITHUB_STEP_SUMMARY || echo "No concerning events" >> $GITHUB_STEP_SUMMARY
 
   verify:
     name: Verify Deployment
@@ -304,17 +304,17 @@ jobs:
       - name: Verify All Pods Running
         run: |
           echo "Waiting for all pods to be ready..."
-          kubectl wait --for=condition=ready pod --all -n ${{ github.event.inputs.environment }} --timeout=600s
+          kubectl wait --for=condition=ready pod --all -n ${{ inputs.environment }} --timeout=600s
 
           echo "### ✅ All Pods are Running!" >> $GITHUB_STEP_SUMMARY
-          kubectl get pods -n ${{ github.event.inputs.environment }} >> $GITHUB_STEP_SUMMARY
+          kubectl get pods -n ${{ inputs.environment }} >> $GITHUB_STEP_SUMMARY
 
       - name: Run Health Checks
         run: |
           echo "### 🏥 Health Check Results" >> $GITHUB_STEP_SUMMARY
 
           # Test API Gateway health
-          API_GATEWAY_IP=$(kubectl get service api-gateway -n ${{ github.event.inputs.environment }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          API_GATEWAY_IP=$(kubectl get service api-gateway -n ${{ inputs.environment }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           if [ ! -z "$API_GATEWAY_IP" ]; then
             echo "**API Gateway:** $API_GATEWAY_IP" >> $GITHUB_STEP_SUMMARY
             curl -f http://$API_GATEWAY_IP/health || echo "❌ Health check failed" >> $GITHUB_STEP_SUMMARY

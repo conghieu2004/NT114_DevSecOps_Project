@@ -1,4 +1,4 @@
-name: Backend Microservices Build & Deploy
+name: Backend Microservices Build
 
 on:
   push:
@@ -20,10 +20,11 @@ env:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   build-and-push:
-    name: Build and Push Backend Services
+    name: Build and Push Backend Services to ECR
     runs-on: ubuntu-latest
 
     strategy:
@@ -76,29 +77,18 @@ jobs:
           echo "**Repository:** ${{ env.ECR_REGISTRY_ALIAS }}/${{ matrix.service.name }}" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** ${{ github.sha }}, latest" >> $GITHUB_STEP_SUMMARY
 
-  summary:
-    name: Backend Build Summary
-    runs-on: ubuntu-latest
-    needs: [build-and-push]
-    if: always()
-
-    steps:
-      - name: Build Summary
-        run: |
-          echo "### Backend Microservices Build Complete 🚀" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Services Built:**" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ API Gateway" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Exercises Service" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Scores Service" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ User Management Service" >> $GITHUB_STEP_SUMMARY
-
-  deploy-dev:
-    name: Auto-deploy to Dev
+  trigger-deployment:
+    name: Trigger Deployment
     needs: [build-and-push]
     if: github.ref == 'refs/heads/main' && success()
-    uses: ./.github/workflows/deploy-to-eks.yml
-    secrets: inherit
-    with:
-      environment: dev
-      services: api-gateway,user-management-service,exercises-service,scores-service
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Deployment Workflow
+        run: |
+          echo "🚀 Triggering deployment workflow for all backend services..."
+          gh workflow run deploy-to-eks.yml \
+            -f environment=dev \
+            -f services=api-gateway,user-management-service,exercises-service,scores-service
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
