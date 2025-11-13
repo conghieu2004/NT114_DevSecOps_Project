@@ -104,14 +104,7 @@ jobs:
         run: |
           kubectl create namespace ${{ inputs.environment }} --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Create StorageClass for EBS
-        run: |
-          echo "Creating EBS StorageClass..."
-          kubectl apply -f kubernetes/local/storage-class.yaml
-
-          echo "✅ StorageClass created"
-          kubectl get storageclass ebs-gp3-encrypted
-
+  
       - name: Create ECR Secret (Cross-Account)
         run: |
           # Note: This assumes GitHub Actions AWS credentials have permission to access ECR in account ${{ steps.aws-account.outputs.account_id }}
@@ -145,100 +138,7 @@ jobs:
 
           echo "✅ Cleanup complete"
 
-      - name: Validate EBS Storage Before PostgreSQL
-        if: contains(inputs.services, 'all') || contains(inputs.services, 'postgresql')
-        run: |
-          echo "🔍 Validating EBS storage setup before PostgreSQL deployment..."
-
-          echo "1. Checking EBS CSI Driver addon..."
-          if kubectl get addon aws-ebs-csi-driver -n kube-system; then
-            echo "✅ EBS CSI Driver addon exists"
-            kubectl get addon aws-ebs-csi-driver -n kube-system -o wide
-          else
-            echo "❌ EBS CSI Driver addon NOT FOUND"
-            echo "Available addons:"
-            kubectl get addon -n kube-system || true
-            exit 1
-          fi
-
-          echo ""
-          echo "2. Checking EBS CSI driver pods..."
-          if kubectl get pods -l app.kubernetes.io/name=aws-ebs-csi-driver -n kube-system; then
-            echo "✅ EBS CSI Driver pods found"
-            kubectl get pods -l app.kubernetes.io/name=aws-ebs-csi-driver -n kube-system
-            echo "Waiting for EBS CSI driver pods to be ready..."
-            kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=aws-ebs-csi-driver -n kube-system --timeout=120s
-          else
-            echo "❌ EBS CSI Driver pods NOT FOUND"
-            kubectl get pods -n kube-system | grep csi || true
-            exit 1
-          fi
-
-          echo ""
-          echo "3. Checking storage classes..."
-          if kubectl get storageclass ebs-gp3-encrypted; then
-            echo "✅ ebs-gp3-encrypted storage class found"
-            kubectl get storageclass ebs-gp3-encrypted -o yaml
-          else
-            echo "❌ ebs-gp3-encrypted storage class NOT FOUND"
-            echo "Available storage classes:"
-            kubectl get storageclass || true
-            exit 1
-          fi
-
-          echo ""
-          echo "4. Testing storage class functionality..."
-          cat <<EOF | kubectl apply -f -
-          apiVersion: v1
-          kind: PersistentVolumeClaim
-          metadata:
-            name: storage-test-pvc
-            namespace: ${{ inputs.environment }}
-          spec:
-            accessModes:
-              - ReadWriteOnce
-            storageClassName: ebs-gp3-encrypted
-            resources:
-              requests:
-                storage: 1Gi
-          EOF
-
-          echo "Waiting for test PVC to be bound..."
-          if kubectl wait --for=condition=Bound pvc storage-test-pvc -n ${{ inputs.environment }} --timeout=60s; then
-            echo "✅ Storage class is working correctly"
-            kubectl get pvc storage-test-pvc -n ${{ inputs.environment }}
-            kubectl delete pvc storage-test-pvc -n ${{ inputs.environment }} --wait=false
-          else
-            echo "❌ Storage class test FAILED"
-            kubectl get pvc storage-test-pvc -n ${{ inputs.environment }} -o yaml || true
-            kubectl describe pvc storage-test-pvc -n ${{ inputs.environment }} || true
-            kubectl get events -n ${{ inputs.environment }} --sort-by='.lastTimestamp' | tail -10 || true
-            exit 1
-          fi
-
-      - name: Deploy PostgreSQL
-        id: deploy-postgres
-        run: |
-          echo "Deploying PostgreSQL database..."
-          kubectl apply -f kubernetes/local/postgres-deployment.yaml -n ${{ inputs.environment }}
-
-          echo "Waiting for PostgreSQL to be ready..."
-          if kubectl wait --for=condition=ready pod -l app=postgres -n ${{ inputs.environment }} --timeout=300s; then
-            echo "✅ PostgreSQL is ready!"
-            kubectl get pods -l app=postgres -n ${{ inputs.environment }}
-          else
-            echo "❌ PostgreSQL failed to become ready within timeout"
-            echo "Pod status:"
-            kubectl get pods -l app=postgres -n ${{ inputs.environment }}
-            echo ""
-            echo "Pod description:"
-            kubectl describe pods -l app=postgres -n ${{ inputs.environment }}
-            echo ""
-            echo "Pod logs:"
-            kubectl logs -l app=postgres -n ${{ inputs.environment }} --tail=50 || true
-            exit 1
-          fi
-
+  
       - name: Deploy API Gateway
         if: contains(inputs.services, 'all') || contains(inputs.services, 'api-gateway')
         run: |
