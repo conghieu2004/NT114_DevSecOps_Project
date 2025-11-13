@@ -1,17 +1,6 @@
 name: Backend Microservices Build
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'microservices/**'
-      - '.github/workflows/backend-build.yml'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'microservices/**'
   workflow_dispatch:
 
 env:
@@ -20,7 +9,6 @@ env:
 
 permissions:
   contents: read
-  actions: write
 
 jobs:
   build-and-push:
@@ -77,18 +65,4 @@ jobs:
           echo "**Repository:** ${{ env.ECR_REGISTRY_ALIAS }}/${{ matrix.service.name }}" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** ${{ github.sha }}, latest" >> $GITHUB_STEP_SUMMARY
 
-  trigger-deployment:
-    name: Trigger Deployment
-    needs: [build-and-push]
-    if: github.ref == 'refs/heads/main' && success()
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Trigger Deployment Workflow
-        run: |
-          echo "🚀 Triggering deployment workflow for all backend services..."
-          gh workflow run deploy-to-eks.yml \
-            -f environment=dev \
-            -f services=api-gateway,user-management-service,exercises-service,scores-service
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  

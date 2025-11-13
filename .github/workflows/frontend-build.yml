@@ -1,17 +1,6 @@
 name: Frontend Build
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/frontend-build.yml'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'frontend/**'
   workflow_dispatch:
 
 env:
@@ -20,7 +9,6 @@ env:
 
 permissions:
   contents: read
-  actions: write
 
 jobs:
   build-and-push:
@@ -67,12 +55,4 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ Frontend image successfully pushed to ECR" >> $GITHUB_STEP_SUMMARY
 
-      - name: Trigger Deployment
-        if: github.ref == 'refs/heads/main' && success()
-        run: |
-          echo "🚀 Triggering deployment workflow..."
-          gh workflow run deploy-to-eks.yml \
-            -f environment=dev \
-            -f services=frontend
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
