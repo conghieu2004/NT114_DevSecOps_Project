@@ -151,3 +151,78 @@ output "github_actions_secret_access_key" {
   value       = module.ecr.github_actions_secret_access_key
   sensitive   = true
 }
+
+# RDS PostgreSQL Outputs
+output "rds_instance_endpoint" {
+  description = "RDS PostgreSQL endpoint"
+  value       = module.rds_postgresql.db_instance_endpoint
+}
+
+output "rds_instance_port" {
+  description = "RDS PostgreSQL port"
+  value       = module.rds_postgresql.db_instance_port
+}
+
+output "rds_instance_database_name" {
+  description = "RDS PostgreSQL database name"
+  value       = module.rds_postgresql.db_instance_database_name
+}
+
+output "rds_instance_username" {
+  description = "RDS PostgreSQL username"
+  value       = module.rds_postgresql.db_instance_username
+  sensitive   = true
+}
+
+output "rds_instance_password" {
+  description = "RDS PostgreSQL password"
+  value       = module.rds_postgresql.db_instance_password
+  sensitive   = true
+}
+
+output "rds_instance_id" {
+  description = "RDS instance ID"
+  value       = module.rds_postgresql.db_instance_id
+}
+
+output "rds_security_group_id" {
+  description = "RDS security group ID"
+  value       = module.rds_postgresql.security_group_id
+}
+
+# S3 Migration Bucket Outputs
+output "migration_bucket_name" {
+  description = "S3 bucket name for migration files"
+  value       = aws_s3_bucket.migration.bucket
+}
+
+output "migration_bucket_arn" {
+  description = "S3 bucket ARN for migration files"
+  value       = aws_s3_bucket.migration.arn
+}
+
+# Bastion Host Outputs
+output "bastion_public_ip" {
+  description = "Bastion host public IP address"
+  value       = module.bastion_host.instance_public_ip
+}
+
+output "bastion_public_dns" {
+  description = "Bastion host public DNS"
+  value       = module.bastion_host.instance_public_dns
+}
+
+output "bastion_instance_id" {
+  description = "Bastion host instance ID"
+  value       = module.bastion_host.instance_id
+}
+
+output "bastion_key_name" {
+  description = "Bastion host SSH key name"
+  value       = module.bastion_host.key_name
+}
+
+output "bastion_security_group_id" {
+  description = "Bastion host security group ID"
+  value       = module.bastion_host.security_group_id
+}

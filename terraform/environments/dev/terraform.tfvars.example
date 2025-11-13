@@ -81,3 +81,28 @@ create_eks_access_policy = true
 eks_access_policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
 access_scope_type        = "cluster"
 access_scope_namespaces  = []
+
+# RDS PostgreSQL Configuration
+rds_instance_identifier  = "nt114-postgres-dev"
+rds_engine_version        = "15.4"
+rds_instance_class        = "db.t3.micro"
+rds_allocated_storage     = 20
+rds_max_allocated_storage = 100
+rds_storage_encrypted     = true
+rds_skip_final_snapshot   = false
+
+# Bastion Host Configuration
+bastion_instance_name     = "nt114-bastion-dev"
+bastion_instance_type     = "t3.small"
+bastion_allocate_eip      = true
+bastion_allowed_ssh_cidrs = ["0.0.0.0/0"]
+
+# SSH Key for Bastion Host (REPLACE WITH YOUR ACTUAL PUBLIC KEY)
+bastion_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... your-email@example.com"
+
+# S3 Migration Configuration
+migration_bucket_name = "nt114-migration-bucket-dev"
+
+# Security Configuration
+# Note: For production, restrict bastion_allowed_ssh_cidrs to specific IP ranges
+# bastion_allowed_ssh_cidrs = ["YOUR_OFFICE_IP/32", "YOUR_HOME_IP/32"]

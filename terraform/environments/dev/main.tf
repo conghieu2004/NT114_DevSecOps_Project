@@ -125,6 +125,122 @@ resource "aws_eks_addon" "ebs_csi_driver" {
   ]
 }
 
+# RDS PostgreSQL Module
+module "rds_postgresql" {
+  source = "../../modules/rds-postgresql"
+
+  db_identifier  = var.rds_instance_identifier
+  engine_version = var.rds_engine_version
+  instance_class = var.rds_instance_class
+
+  allocated_storage     = var.rds_allocated_storage
+  max_allocated_storage = var.rds_max_allocated_storage
+  storage_encrypted     = var.rds_storage_encrypted
+
+  db_name  = var.rds_initial_database
+  username = var.rds_username
+  port     = var.rds_port
+
+  vpc_id               = module.vpc.vpc_id
+  private_subnet_ids   = module.vpc.private_subnets
+  eks_security_group_ids = [module.eks_cluster.cluster_security_group_id]
+
+  backup_retention_period = var.rds_backup_retention_period
+  backup_window          = var.rds_backup_window
+  maintenance_window     = var.rds_maintenance_window
+
+  skip_final_snapshot       = var.rds_skip_final_snapshot
+  final_snapshot_identifier = var.rds_final_snapshot_identifier
+  deletion_protection       = var.rds_deletion_protection
+
+  monitoring_interval           = var.rds_monitoring_interval
+  enabled_cloudwatch_logs_exports = var.rds_enabled_cloudwatch_logs_exports
+  log_retention_days            = var.rds_log_retention_days
+
+  tags = merge(var.tags, {
+    Name = var.rds_instance_identifier
+  })
+
+  depends_on = [
+    module.eks_nodegroup,
+    module.alb_controller
+  ]
+}
+
+# S3 Bucket for Migration Files
+resource "aws_s3_bucket" "migration" {
+  bucket = var.migration_bucket_name
+
+  tags = merge(var.tags, {
+    Name = var.migration_bucket_name
+  })
+}
+
+resource "aws_s3_bucket_versioning" "migration" {
+  bucket = aws_s3_bucket.migration.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "migration" {
+  bucket = aws_s3_bucket.migration.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "migration" {
+  bucket = aws_s3_bucket.migration.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# Bastion Host Module
+module "bastion_host" {
+  source = "../../modules/bastion-host"
+
+  instance_name = var.bastion_instance_name
+  environment   = var.environment
+
+  instance_type = var.bastion_instance_type
+  ami_id        = var.bastion_ami_id
+
+  key_name   = var.bastion_key_name
+  public_key = var.bastion_public_key
+
+  vpc_id            = module.vpc.vpc_id
+  public_subnet_id  = module.vpc.public_subnets[0] # Use first public subnet
+  allowed_ssh_cidrs = var.bastion_allowed_ssh_cidrs
+
+  rds_security_group_ids = [module.rds_postgresql.security_group_id]
+
+  db_host     = module.rds_postgresql.db_instance_endpoint
+  db_port     = module.rds_postgresql.db_instance_port
+  db_username = module.rds_postgresql.db_instance_username
+  db_password = module.rds_postgresql.db_instance_password
+
+  s3_bucket_name = aws_s3_bucket.migration.bucket
+
+  root_volume_size = var.bastion_root_volume_size
+  allocate_eip     = var.bastion_allocate_eip
+
+  tags = merge(var.tags, {
+    Name = var.bastion_instance_name
+  })
+
+  depends_on = [
+    module.rds_postgresql,
+    aws_s3_bucket.migration
+  ]
+}
+
 # IAM Access Control Module
 module "iam_access" {
   source = "../../modules/iam-access"

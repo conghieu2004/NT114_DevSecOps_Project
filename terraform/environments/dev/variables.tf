@@ -210,13 +210,13 @@ variable "resolve_conflicts_on_update" {
 variable "enable_alb_controller" {
   description = "Enable AWS Load Balancer Controller (set to false for first apply, then true)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "enable_ebs_csi_controller" {
   description = "Enable EBS CSI Controller IAM role"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "ebs_csi_addon_version" {
@@ -344,4 +344,170 @@ variable "access_scope_namespaces" {
   description = "List of namespaces for access scope (only if type is namespace)"
   type        = list(string)
   default     = []
+}
+
+# RDS PostgreSQL Variables
+variable "rds_instance_identifier" {
+  description = "RDS PostgreSQL instance identifier"
+  type        = string
+  default     = "nt114-postgres-dev"
+}
+
+variable "rds_engine_version" {
+  description = "PostgreSQL engine version"
+  type        = string
+  default     = "15.4"
+}
+
+variable "rds_instance_class" {
+  description = "RDS instance class"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "rds_allocated_storage" {
+  description = "RDS allocated storage in GB"
+  type        = number
+  default     = 20
+}
+
+variable "rds_max_allocated_storage" {
+  description = "RDS maximum allocated storage in GB"
+  type        = number
+  default     = 100
+}
+
+variable "rds_storage_encrypted" {
+  description = "RDS storage encryption"
+  type        = bool
+  default     = true
+}
+
+variable "rds_initial_database" {
+  description = "Initial database name"
+  type        = string
+  default     = "postgres"
+}
+
+variable "rds_username" {
+  description = "RDS master username"
+  type        = string
+  default     = "postgres"
+}
+
+variable "rds_port" {
+  description = "RDS port"
+  type        = number
+  default     = 5432
+}
+
+variable "rds_backup_retention_period" {
+  description = "RDS backup retention period in days"
+  type        = number
+  default     = 7
+}
+
+variable "rds_backup_window" {
+  description = "RDS backup window"
+  type        = string
+  default     = "03:00-04:00"
+}
+
+variable "rds_maintenance_window" {
+  description = "RDS maintenance window"
+  type        = string
+  default     = "sun:04:00-sun:05:00"
+}
+
+variable "rds_skip_final_snapshot" {
+  description = "Skip RDS final snapshot"
+  type        = bool
+  default     = false
+}
+
+variable "rds_final_snapshot_identifier" {
+  description = "RDS final snapshot identifier"
+  type        = string
+  default     = "nt114-postgres-dev-final-snapshot"
+}
+
+variable "rds_deletion_protection" {
+  description = "RDS deletion protection"
+  type        = bool
+  default     = false
+}
+
+variable "rds_monitoring_interval" {
+  description = "RDS enhanced monitoring interval"
+  type        = number
+  default     = 0
+}
+
+variable "rds_enabled_cloudwatch_logs_exports" {
+  description = "RDS CloudWatch logs exports"
+  type        = list(string)
+  default     = ["postgresql"]
+}
+
+variable "rds_log_retention_days" {
+  description = "RDS log retention days"
+  type        = number
+  default     = 7
+}
+
+# S3 Migration Variables
+variable "migration_bucket_name" {
+  description = "S3 bucket name for migration files"
+  type        = string
+  default     = "nt114-migration-bucket-dev"
+}
+
+# Bastion Host Variables
+variable "bastion_instance_name" {
+  description = "Bastion host instance name"
+  type        = string
+  default     = "nt114-bastion-dev"
+}
+
+variable "bastion_instance_type" {
+  description = "Bastion host instance type"
+  type        = string
+  default     = "t3.small"
+}
+
+variable "bastion_ami_id" {
+  description = "Bastion host AMI ID"
+  type        = string
+  default     = "ami-0c02fb55956c7d316"
+}
+
+variable "bastion_key_name" {
+  description = "Bastion host SSH key name"
+  type        = string
+  default     = "nt114-bastion-key"
+}
+
+variable "bastion_public_key" {
+  description = "Bastion host public key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "bastion_allowed_ssh_cidrs" {
+  description = "Bastion host allowed SSH CIDRs"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
+variable "bastion_root_volume_size" {
+  description = "Bastion host root volume size in GB"
+  type        = number
+  default     = 20
+}
+
+variable "bastion_allocate_eip" {
+  description = "Allocate EIP for bastion host"
+  type        = bool
+  default     = true
 }
