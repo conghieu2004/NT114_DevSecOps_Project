@@ -35,7 +35,7 @@ output "db_instance_username" {
 
 output "db_instance_password" {
   description = "RDS instance master password"
-  value       = random_password.db_password.result
+  value       = var.password != null ? var.password : random_password.db_password.result
   sensitive   = true
 }
 

@@ -51,6 +51,13 @@ variable "username" {
   default     = "postgres"
 }
 
+variable "password" {
+  description = "RDS master password (if null, generates random password)"
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
 variable "port" {
   description = "Database port"
   type        = number

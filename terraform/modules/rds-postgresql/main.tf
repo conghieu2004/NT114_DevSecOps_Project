@@ -13,7 +13,7 @@ resource "aws_db_instance" "postgresql" {
 
   db_name  = var.db_name
   username = var.username
-  password = random_password.db_password.result
+  password = var.password != null ? var.password : random_password.db_password.result
 
   port = var.port
 
@@ -43,7 +43,7 @@ resource "aws_db_instance" "postgresql" {
     }
   )
 
-  depends_on = [aws_security_group.rds]
+  depends_on = [aws_security_group.rds, random_password.db_password]
 }
 
 # Random password for RDS

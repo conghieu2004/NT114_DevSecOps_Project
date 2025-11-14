@@ -139,6 +139,7 @@ module "rds_postgresql" {
 
   db_name  = var.rds_initial_database
   username = var.rds_username
+  password = var.rds_password != null ? var.rds_password : null
   port     = var.rds_port
 
   vpc_id                 = module.vpc.vpc_id

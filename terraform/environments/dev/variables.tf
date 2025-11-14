@@ -499,6 +499,18 @@ variable "bastion_public_key" {
   }
 }
 
+variable "rds_password" {
+  description = "RDS PostgreSQL master password (if null, generates random password)"
+  type        = string
+  default     = null
+  sensitive   = true
+
+  validation {
+    condition     = var.rds_password == null || (length(var.rds_password) >= 8 && length(var.rds_password) <= 128)
+    error_message = "The RDS password must be between 8 and 128 characters."
+  }
+}
+
 variable "bastion_allowed_ssh_cidrs" {
   description = "Bastion host allowed SSH CIDRs"
   type        = list(string)
