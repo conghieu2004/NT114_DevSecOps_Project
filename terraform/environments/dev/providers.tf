@@ -14,9 +14,21 @@ terraform {
       source  = "hashicorp/kubernetes"
       version = "~> 2.30"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.5"
+    }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.1"
+    }
   }
 }
 
 provider "aws" {
   region = var.aws_region
 }
+
+provider "random" {}
+
+provider "tls" {}
