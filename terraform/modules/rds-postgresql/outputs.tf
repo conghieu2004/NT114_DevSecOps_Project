@@ -76,10 +76,10 @@ output "db_instance_class" {
 
 output "kms_key_id" {
   description = "KMS key ID for encryption"
-  value = var.create_kms_key ? aws_kms_key.rds[0].id : null
+  value       = var.create_kms_key ? aws_kms_key.rds[0].id : null
 }
 
 output "kms_key_arn" {
   description = "KMS key ARN for encryption"
-  value = var.create_kms_key ? aws_kms_key.rds[0].arn : null
+  value       = var.create_kms_key ? aws_kms_key.rds[0].arn : null
 }

@@ -141,21 +141,21 @@ module "rds_postgresql" {
   username = var.rds_username
   port     = var.rds_port
 
-  vpc_id               = module.vpc.vpc_id
-  private_subnet_ids   = module.vpc.private_subnets
+  vpc_id                 = module.vpc.vpc_id
+  private_subnet_ids     = module.vpc.private_subnets
   eks_security_group_ids = [module.eks_cluster.cluster_security_group_id]
 
   backup_retention_period = var.rds_backup_retention_period
-  backup_window          = var.rds_backup_window
-  maintenance_window     = var.rds_maintenance_window
+  backup_window           = var.rds_backup_window
+  maintenance_window      = var.rds_maintenance_window
 
   skip_final_snapshot       = var.rds_skip_final_snapshot
   final_snapshot_identifier = var.rds_final_snapshot_identifier
   deletion_protection       = var.rds_deletion_protection
 
-  monitoring_interval           = var.rds_monitoring_interval
+  monitoring_interval             = var.rds_monitoring_interval
   enabled_cloudwatch_logs_exports = var.rds_enabled_cloudwatch_logs_exports
-  log_retention_days            = var.rds_log_retention_days
+  log_retention_days              = var.rds_log_retention_days
 
   tags = merge(var.tags, {
     Name = var.rds_instance_identifier

@@ -21,8 +21,8 @@ resource "aws_db_instance" "postgresql" {
   db_subnet_group_name   = aws_db_subnet_group.rds.name
 
   backup_retention_period = var.backup_retention_period
-  backup_window          = var.backup_window
-  maintenance_window     = var.maintenance_window
+  backup_window           = var.backup_window
+  maintenance_window      = var.maintenance_window
 
   skip_final_snapshot       = var.skip_final_snapshot
   final_snapshot_identifier = var.final_snapshot_identifier
@@ -54,8 +54,8 @@ resource "random_password" "db_password" {
 
 # KMS key for encryption (if needed)
 resource "aws_kms_key" "rds" {
-  count             = var.create_kms_key ? 1 : 0
-  description       = "KMS key for RDS encryption"
+  count               = var.create_kms_key ? 1 : 0
+  description         = "KMS key for RDS encryption"
   enable_key_rotation = true
 
   policy = jsonencode({
@@ -89,19 +89,19 @@ resource "aws_security_group" "rds" {
 
   # PostgreSQL access from EKS
   ingress {
-    description = "PostgreSQL from EKS"
-    from_port   = var.port
-    to_port     = var.port
-    protocol    = "tcp"
+    description     = "PostgreSQL from EKS"
+    from_port       = var.port
+    to_port         = var.port
+    protocol        = "tcp"
     security_groups = var.eks_security_group_ids
   }
 
   # PostgreSQL access from Bastion Host
   ingress {
-    description = "PostgreSQL from Bastion Host"
-    from_port   = var.port
-    to_port     = var.port
-    protocol    = "tcp"
+    description     = "PostgreSQL from Bastion Host"
+    from_port       = var.port
+    to_port         = var.port
+    protocol        = "tcp"
     security_groups = var.bastion_security_group_ids
   }
 

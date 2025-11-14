@@ -490,8 +490,13 @@ variable "bastion_key_name" {
 variable "bastion_public_key" {
   description = "Bastion host public key"
   type        = string
-  default     = ""
+  default     = null
   sensitive   = true
+
+  validation {
+    condition     = var.bastion_public_key == null || can(regex("^ssh-(rsa|ed25519|ecdsa)", var.bastion_public_key))
+    error_message = "The bastion_public_key must be a valid OpenSSH public key starting with ssh-rsa, ssh-ed25519, or ssh-ecdsa."
+  }
 }
 
 variable "bastion_allowed_ssh_cidrs" {

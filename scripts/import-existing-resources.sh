@@ -7,15 +7,24 @@ set -e
 
 AWS_REGION="${AWS_REGION:-us-east-1}"
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-TERRAFORM_DIR="terraform/environments/dev"
+
+# Detect if we're already in the terraform directory
+if [[ $(pwd) == */terraform/environments/dev ]]; then
+  TERRAFORM_DIR="."
+else
+  TERRAFORM_DIR="terraform/environments/dev"
+fi
 
 echo "====================================="
 echo "Importing Existing AWS Resources"
 echo "Account: $AWS_ACCOUNT_ID"
 echo "Region: $AWS_REGION"
+echo "Working Directory: $TERRAFORM_DIR"
 echo "====================================="
 
-cd "$TERRAFORM_DIR"
+if [ "$TERRAFORM_DIR" != "." ]; then
+  cd "$TERRAFORM_DIR"
+fi
 
 # Import ECR Repositories
 echo ""

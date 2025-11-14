@@ -74,27 +74,18 @@ resource "aws_security_group" "bastion" {
 
   # PostgreSQL access to RDS
   egress {
-    description = "PostgreSQL to RDS"
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
+    description     = "PostgreSQL to RDS"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
     security_groups = var.rds_security_group_ids
   }
 
   # HTTP/HTTPS outbound
   egress {
-    description = "HTTP/HTTPS outbound"
+    description = "HTTP/HTTPS outbound (includes S3 access)"
     from_port   = 80
     to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # S3 access for migration files
-  egress {
-    description = "S3 access"
-    from_port   = 0
-    to_port     = 0
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -145,14 +136,14 @@ EOF
     volume_type           = "gp3"
     volume_size           = var.root_volume_size
     delete_on_termination = true
-    encrypted            = true
+    encrypted             = true
   }
 
   tags = merge(
     var.tags,
     {
       Name        = var.instance_name
- Environment = var.environment
+      Environment = var.environment
     }
   )
 

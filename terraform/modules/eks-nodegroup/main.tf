@@ -2,11 +2,11 @@ module "eks_managed_node_group" {
   source  = "terraform-aws-modules/eks/aws//modules/eks-managed-node-group"
   version = "~> 20.0"
 
-  name                  = var.node_group_name
-  cluster_name          = var.cluster_name
-  cluster_version       = var.cluster_version
-  cluster_service_cidr  = var.cluster_service_cidr
-  subnet_ids            = var.subnet_ids
+  name                 = var.node_group_name
+  cluster_name         = var.cluster_name
+  cluster_version      = var.cluster_version
+  cluster_service_cidr = var.cluster_service_cidr
+  subnet_ids           = var.subnet_ids
 
   min_size     = var.min_size
   max_size     = var.max_size
