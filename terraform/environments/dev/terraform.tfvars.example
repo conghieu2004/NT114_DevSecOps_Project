@@ -1,108 +1,50 @@
-# General Configuration
-aws_region = "us-east-1"
-
-tags = {
-  Environment = "dev"
-  Terraform   = "true"
-  Project     = "NT114_DevSecOps"
-}
+# Project Configuration
+project_name = "nt114-devsecops"
+environment  = "dev"
+aws_region   = "us-east-1"
 
 # VPC Configuration
-vpc_name           = "eks-vpc1"
-vpc_cidr           = "11.0.0.0/16"
+vpc_name = "eks-vpc1"
+vpc_cidr = "11.0.0.0/16"
+
 availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
 private_subnets    = ["11.0.1.0/24", "11.0.2.0/24", "11.0.3.0/24"]
 public_subnets     = ["11.0.101.0/24", "11.0.102.0/24", "11.0.103.0/24"]
-
-enable_nat_gateway     = true
-single_nat_gateway     = true
-one_nat_gateway_per_az = false
 
 # EKS Cluster Configuration
 cluster_name    = "eks-1"
 cluster_version = "1.31"
 
-bootstrap_self_managed_addons            = true
-cluster_support_type                     = "STANDARD"
-cluster_endpoint_public_access           = true
-cluster_endpoint_private_access          = true
-enable_cluster_creator_admin_permissions = true
-enable_irsa                              = true
-
-cluster_addons = {
-  eks-pod-identity-agent = {}
-  kube-proxy             = {}
-  vpc-cni                = {}
-}
-
-# Node Group Configuration
 node_group_name     = "eks-node"
 node_instance_types = ["t3.large"]
 node_capacity_type  = "SPOT"
 node_min_size       = 1
-node_max_size       = 2
 node_desired_size   = 1
+node_max_size       = 2
 
-node_labels = {
-  Environment = "dev"
-  GithubRepo  = "terraform-aws-eks"
-  GithubOrg   = "terraform-aws-modules"
-}
-
-enable_coredns_addon            = true
-coredns_version                 = null
-resolve_conflicts_on_create     = "OVERWRITE"
-resolve_conflicts_on_update     = "OVERWRITE"
-
-# ALB Controller Configuration
-enable_alb_controller     = true
-enable_ebs_csi_controller = true
-ebs_csi_addon_version     = "v1.36.0-eksbuild.1"
-
-helm_release_name     = "aws-load-balancer-controller"
-helm_namespace        = "kube-system"
-helm_chart_name       = "aws-load-balancer-controller"
-helm_chart_repository = "https://aws.github.io/eks-charts"
-helm_chart_version    = null
-service_account_name  = "aws-load-balancer-controller"
-
-# IAM Access Control Configuration
-create_admin_group        = true
-admin_group_name          = "eks-admin-group"
-create_admin_role         = true
-admin_role_name           = "eks-admin-role"
-attach_admin_policy       = true
-create_assume_role_policy = true
-assume_role_policy_name   = "eks-assume-role-policy"
-
-create_eks_access_entry  = true
-access_entry_type        = "STANDARD"
-create_eks_access_policy = true
-eks_access_policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-access_scope_type        = "cluster"
-access_scope_namespaces  = []
-
-# RDS PostgreSQL Configuration
-rds_instance_identifier  = "nt114-postgres-dev"
+# RDS Configuration
+rds_instance_identifier   = "nt114-postgres-dev"
 rds_engine_version        = "15.4"
 rds_instance_class        = "db.t3.micro"
 rds_allocated_storage     = 20
 rds_max_allocated_storage = 100
-rds_storage_encrypted     = true
-rds_skip_final_snapshot   = false
+rds_initial_database      = "postgres"
+rds_username              = "postgres"
+rds_password              = "your-secure-password-here"  # Replace with actual password
 
 # Bastion Host Configuration
-bastion_instance_name     = "nt114-bastion-dev"
-bastion_instance_type     = "t3.small"
-bastion_allocate_eip      = true
-bastion_allowed_ssh_cidrs = ["0.0.0.0/0"]
+bastion_instance_name = "nt114-bastion-dev"
+bastion_instance_type = "t3.small"
+bastion_key_name      = "nt114-bastion-key"
+bastion_public_key    = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7...your-public-key-here"  # Replace with actual public key
 
-# SSH Key for Bastion Host (REPLACE WITH YOUR ACTUAL PUBLIC KEY)
-bastion_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... your-email@example.com"
-
-# S3 Migration Configuration
+# S3 Configuration
 migration_bucket_name = "nt114-migration-bucket-dev"
 
-# Security Configuration
-# Note: For production, restrict bastion_allowed_ssh_cidrs to specific IP ranges
-# bastion_allowed_ssh_cidrs = ["YOUR_OFFICE_IP/32", "YOUR_HOME_IP/32"]
+# Feature Toggles
+enable_alb_controller     = true
+enable_ebs_csi_controller = true
+
+# Cost Optimization
+enable_nat_gateway = true
+single_nat_gateway = true
