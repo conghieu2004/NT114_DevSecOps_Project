@@ -44,3 +44,13 @@ plans/
 *credentials*.txt
 .github-credentials*
 *-DO-NOT-COMMIT*
+
+# SSH Keys and Sensitive Files
+*.pem
+*.key
+nt114-bastion-devsecops-*
+id_rsa*
+*.priv
+*.pub
+secrets/
+.secrets

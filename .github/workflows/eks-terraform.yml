@@ -53,6 +53,9 @@ jobs:
   terraform-plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
+    concurrency:
+      group: terraform-plan-${{ inputs.environment || 'dev' }}
+      cancel-in-progress: false
     defaults:
       run:
         working-directory: terraform/environments/${{ inputs.environment || 'dev' }}
@@ -63,6 +66,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full git history to ensure latest commits
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -77,6 +82,25 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
+      - name: Validate Required Secrets
+        run: |
+          echo "Validating secrets required for Terraform deployment..."
+
+          if [[ -z "${{ secrets.BASTION_PUBLIC_KEY }}" ]]; then
+            echo "❌ BASTION_PUBLIC_KEY secret is not configured"
+            echo "Please add BASTION_PUBLIC_KEY to repository secrets"
+            exit 1
+          else
+            echo "✅ BASTION_PUBLIC_KEY is configured"
+          fi
+
+          if [[ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" || -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]]; then
+            echo "❌ AWS credentials are not configured"
+            exit 1
+          else
+            echo "✅ AWS credentials are configured"
+          fi
+
       - name: Clean Terraform Cache
         run: |
           rm -rf .terraform
@@ -90,7 +114,23 @@ jobs:
 
       - name: Terraform Init
         id: init
-        run: terraform init
+        run: |
+          # Retry Terraform init up to 3 times to handle provider download issues
+          for i in {1..3}; do
+            echo "Terraform init attempt $i..."
+            if terraform init -upgrade; then
+              echo "Terraform init successful on attempt $i"
+              break
+            else
+              echo "Terraform init failed on attempt $i"
+              if [ $i -eq 3 ]; then
+                echo "Terraform init failed after 3 attempts"
+                exit 1
+              fi
+              echo "Waiting 10 seconds before retry..."
+              sleep 10
+            fi
+          done
 
       - name: Terraform Validate
         id: validate
@@ -160,6 +200,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [terraform-plan]
     if: github.event_name == 'workflow_dispatch' && inputs.action == 'apply'
+    concurrency:
+      group: terraform-apply-${{ inputs.environment || 'dev' }}
+      cancel-in-progress: true
     defaults:
       run:
         working-directory: terraform/environments/${{ inputs.environment || 'dev' }}
@@ -171,6 +214,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full git history to ensure latest commits
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -192,7 +237,7 @@ jobs:
           rm -f terraform.tfstate*
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -upgrade
 
       - name: Import Existing Resources
         run: |
@@ -258,6 +303,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full git history to ensure latest commits
 
       - name: Trigger Database Migration
         run: |
@@ -295,6 +342,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full git history to ensure latest commits
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -310,7 +359,7 @@ jobs:
           terraform_wrapper: false
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -upgrade
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve

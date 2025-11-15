@@ -341,6 +341,26 @@ jobs:
           echo "bastion_ip=$bastion_ip" >> $GITHUB_OUTPUT
           echo "bastion_key_name=$bastion_key_name" >> $GITHUB_OUTPUT
 
+      - name: Validate Migration Secrets
+        run: |
+          echo "Validating secrets required for database migration..."
+
+          required_secrets=(
+            "AWS_ACCESS_KEY_ID"
+            "AWS_SECRET_ACCESS_KEY"
+            "BASTION_SSH_PRIVATE_KEY"
+          )
+
+          for secret in "${required_secrets[@]}"; do
+            if [[ -z "${{ secrets[secret] }}" ]]; then
+              echo "❌ $secret secret is not configured"
+              echo "Please add $secret to repository secrets"
+              exit 1
+            else
+              echo "✅ $secret is configured"
+            fi
+          done
+
       - name: Setup SSH Key
         run: |
           echo "${{ secrets.BASTION_SSH_PRIVATE_KEY }}" > bastion_key.pem
