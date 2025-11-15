@@ -106,6 +106,7 @@ jobs:
           rm -rf .terraform
           rm -f .terraform.lock.hcl
           rm -f terraform.tfstate*
+          rm -f tfplan
 
       - name: Terraform Format Check
         id: fmt
@@ -139,8 +140,8 @@ jobs:
       - name: Terraform Plan
         id: tf-plan
         run: |
-          export exitcode=0
-          terraform plan -detailed-exitcode -no-color -out=tfplan || export exitcode=$?
+          terraform plan -detailed-exitcode -no-color -out=tfplan
+          exitcode=$?
 
           echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
 
@@ -235,6 +236,7 @@ jobs:
           rm -rf .terraform
           rm -f .terraform.lock.hcl
           rm -f terraform.tfstate*
+          rm -f tfplan
 
       - name: Terraform Init
         run: terraform init -upgrade
