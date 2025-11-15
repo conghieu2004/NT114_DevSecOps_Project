@@ -23,6 +23,13 @@ terraform {
       version = "~> 4.1"
     }
   }
+
+  # Remove backend configuration to allow fresh state per workflow run
+  # backend "s3" {
+  #   bucket = "my-terraform-state-bucket"
+  #   key    = "terraform.tfstate"
+  #   region = "us-east-1"
+  # }
 }
 
 provider "aws" {

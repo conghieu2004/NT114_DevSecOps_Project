@@ -135,62 +135,56 @@ module "rds_postgresql" {
 
   allocated_storage     = var.rds_allocated_storage
   max_allocated_storage = var.rds_max_allocated_storage
-  storage_encrypted     = var.rds_storage_encrypted
+  storage_encrypted     = false  # Disabled for demo
 
   db_name  = var.rds_initial_database
   username = var.rds_username
-  password = var.rds_password != null ? var.rds_password : null
+  password = var.rds_password
   port     = var.rds_port
 
   vpc_id                 = module.vpc.vpc_id
   private_subnet_ids     = module.vpc.private_subnets
   eks_security_group_ids = [module.eks_cluster.cluster_security_group_id]
 
-  backup_retention_period = var.rds_backup_retention_period
-  backup_window           = var.rds_backup_window
-  maintenance_window      = var.rds_maintenance_window
+  backup_retention_period = 0  # No backups for demo
+  backup_window           = "03:00-04:00"
+  maintenance_window      = "sun:04:00-sun:05:00"
 
-  skip_final_snapshot       = var.rds_skip_final_snapshot
+  skip_final_snapshot       = true  # Skip snapshot for demo
   final_snapshot_identifier = var.rds_final_snapshot_identifier
-  deletion_protection       = var.rds_deletion_protection
+  deletion_protection       = false  # No deletion protection for demo
 
-  monitoring_interval             = var.rds_monitoring_interval
-  enabled_cloudwatch_logs_exports = var.rds_enabled_cloudwatch_logs_exports
-  log_retention_days              = var.rds_log_retention_days
+  monitoring_interval             = 0
+  enabled_cloudwatch_logs_exports = []
+  log_retention_days              = 1
 
   tags = merge(var.tags, {
     Name = var.rds_instance_identifier
   })
 
   depends_on = [
-    module.eks_nodegroup,
-    module.alb_controller
+    module.vpc
   ]
 }
 
-# S3 Bucket for Migration Files
+# S3 Bucket for Migration Files - Simplified for demo
 resource "aws_s3_bucket" "migration" {
-  bucket = var.migration_bucket_name
+  bucket = "${var.migration_bucket_name}-${random_id.bucket_suffix.hex}"
 
   tags = merge(var.tags, {
     Name = var.migration_bucket_name
   })
 }
 
+resource "random_id" "bucket_suffix" {
+  byte_length = 4
+}
+
+# Minimal S3 configuration for demo
 resource "aws_s3_bucket_versioning" "migration" {
   bucket = aws_s3_bucket.migration.id
   versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "migration" {
-  bucket = aws_s3_bucket.migration.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
+    status = "Disabled"  # Disabled for demo
   }
 }
 
@@ -203,7 +197,7 @@ resource "aws_s3_bucket_public_access_block" "migration" {
   restrict_public_buckets = true
 }
 
-# Bastion Host Module
+# Bastion Host Module - Simplified for demo
 module "bastion_host" {
   source = "../../modules/bastion-host"
 
@@ -225,12 +219,12 @@ module "bastion_host" {
   db_host     = module.rds_postgresql.db_instance_endpoint
   db_port     = module.rds_postgresql.db_instance_port
   db_username = module.rds_postgresql.db_instance_username
-  db_password = module.rds_postgresql.db_instance_password
+  db_password = var.rds_password  # Use variable directly
 
   s3_bucket_name = aws_s3_bucket.migration.bucket
 
-  root_volume_size = var.bastion_root_volume_size
-  allocate_eip     = var.bastion_allocate_eip
+  root_volume_size = 8  # Smaller for demo
+  allocate_eip     = true
 
   tags = merge(var.tags, {
     Name = var.bastion_instance_name
