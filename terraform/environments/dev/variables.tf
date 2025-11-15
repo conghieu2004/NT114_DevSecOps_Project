@@ -506,7 +506,7 @@ variable "rds_password" {
   sensitive   = true
 
   validation {
-    condition     = var.rds_password == null || (length(var.rds_password) >= 8 && length(var.rds_password) <= 128)
+    condition     = var.rds_password == null || can(length(var.rds_password)) && length(var.rds_password) >= 8 && length(var.rds_password) <= 128
     error_message = "The RDS password must be between 8 and 128 characters."
   }
 }

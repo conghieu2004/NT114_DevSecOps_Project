@@ -1,0 +1,15 @@
+{
+  "title": "Hello World - Bai tap dau tien",
+  "description": "Viet chuong trinh in ra man hinh dong chu 'Hello, World!'",
+  "difficulty": "easy",
+  "language": "python",
+  "starter_code": "# Viet code cua ban o day\ndef hello_world():\n    # TODO: In ra 'Hello, World!'\n    pass\n\n# Test\nhello_world()",
+  "solution_code": "def hello_world():\n    print('Hello, World!')\n\n# Test\nhello_world()",
+  "test_cases": [
+    {
+      "input": "",
+      "expected_output": "Hello, World!",
+      "description": "In ra Hello, World!"
+    }
+  ]
+}

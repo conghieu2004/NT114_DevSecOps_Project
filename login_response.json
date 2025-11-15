@@ -1,0 +1,14 @@
+{
+  "auth_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjM0ODI4NTgsImlhdCI6MTc2MDg5MDg1OCwic3ViIjoiMiJ9.Db6nx88D0uf7qkthlsQoOGkwdK-LkaAKC6vHq2haj-U",
+  "data": {
+    "active": true,
+    "admin": true,
+    "created_at": "2025-10-19T14:13:35.121552",
+    "email": "phuocvanho2004@gmail.com",
+    "id": 2,
+    "updated_at": "2025-10-19T14:13:35.121558",
+    "username": "admin"
+  },
+  "message": "Successfully logged in.",
+  "status": "success"
+}
