@@ -155,6 +155,7 @@ jobs:
           terraform plan -detailed-exitcode -no-color -out=tfplan > tfplan_output.txt 2>&1
           exitcode=$?
 
+          # Always capture outputs first before any exit operations
           echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
 
           # Store the plan output for PR comment
@@ -167,7 +168,7 @@ jobs:
 
           if [ $exitcode -eq 1 ]; then
             echo "❌ Terraform Plan Failed!"
-            echo "::error::Terraform plan failed with errors"
+            echo "Plan failed with errors - check the output above"
             exit 1
           elif [ $exitcode -eq 2 ]; then
             echo "✅ Terraform Plan: Changes detected"
@@ -182,9 +183,9 @@ jobs:
           fi
 
       - name: Check Terraform Plan Result
-        if: steps.tf-plan.outcome == 'failure'
+        if: steps.tf-plan.outputs.exitcode == '1'
         run: |
-          echo "::error::Terraform plan step failed. Check the logs above for details."
+          echo "::error::Terraform plan failed with errors. Check the logs above for details."
           exit 1
 
       - name: Publish Terraform Plan
