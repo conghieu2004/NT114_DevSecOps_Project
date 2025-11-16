@@ -43,6 +43,7 @@ env:
   AWS_REGION: us-east-1
   TF_VERSION: '1.9.0'
   TF_VAR_bastion_public_key: ${{ secrets.BASTION_PUBLIC_KEY }}
+  TF_VAR_rds_password: ${{ secrets.RDS_PASSWORD || 'demo123456789' }}
 
 permissions:
   contents: read
@@ -95,6 +96,13 @@ jobs:
             exit 1
           else
             echo "✅ AWS credentials are configured"
+          fi
+
+          if [[ -n "${{ secrets.RDS_PASSWORD }}" ]]; then
+            echo "✅ RDS_PASSWORD secret is configured"
+          else
+            echo "ℹ️ RDS_PASSWORD not configured, using default demo password"
+            echo "⚠️ For production, please add RDS_PASSWORD to repository secrets"
           fi
 
       - name: Clean Terraform Cache
