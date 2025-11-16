@@ -149,27 +149,64 @@ jobs:
 
       - name: Terraform Plan
         id: tf-plan
+        continue-on-error: true
         run: |
-          terraform plan -detailed-exitcode -no-color -out=tfplan
+          # Run terraform plan and capture output and exit code
+          terraform plan -detailed-exitcode -no-color -out=tfplan > tfplan_output.txt 2>&1
           exitcode=$?
 
           echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
 
+          # Store the plan output for PR comment
+          echo "stdout<<EOF" >> $GITHUB_OUTPUT
+          cat tfplan_output.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          # Display the plan output
+          cat tfplan_output.txt
+
           if [ $exitcode -eq 1 ]; then
-            echo "Terraform Plan Failed!"
+            echo "❌ Terraform Plan Failed!"
+            echo "::error::Terraform plan failed with errors"
             exit 1
+          elif [ $exitcode -eq 2 ]; then
+            echo "✅ Terraform Plan: Changes detected"
+            echo "📋 Plan completed with changes to apply"
+            # Exit with 0 to indicate success (changes present is expected behavior)
+            exit 0
           else
+            echo "✅ Terraform Plan: No changes detected"
+            echo "📋 Infrastructure is up to date"
+            # Exit with 0 to indicate success (no changes is also success)
             exit 0
           fi
+
+      - name: Check Terraform Plan Result
+        if: steps.tf-plan.outcome == 'failure'
+        run: |
+          echo "::error::Terraform plan step failed. Check the logs above for details."
+          exit 1
 
       - name: Publish Terraform Plan
         uses: actions/github-script@v7
         if: github.event_name == 'pull_request'
         env:
-          PLAN: "terraform\n${{ steps.tf-plan.outputs.stdout }}"
+          PLAN_EXITCODE: ${{ steps.tf-plan.outputs.exitcode }}
+          PLAN_OUTPUT: ${{ steps.tf-plan.outputs.stdout }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            let planStatus = "Success";
+            let planEmoji = "✅";
+
+            if (process.env.PLAN_EXITCODE === "2") {
+              planStatus = "Changes Detected";
+              planEmoji = "📋";
+            } else if (process.env.PLAN_EXITCODE === "0") {
+              planStatus = "No Changes";
+              planEmoji = "✅";
+            }
+
             const output = `#### Terraform Format and Style \`${{ steps.fmt.outcome }}\`
             #### Terraform Initialization \`${{ steps.init.outcome }}\`
             #### Terraform Validation \`${{ steps.validate.outcome }}\`
@@ -181,12 +218,12 @@ jobs:
 
             </details>
 
-            #### Terraform Plan \`${{ steps.tf-plan.outcome }}\`
+            #### Terraform Plan ${planEmoji} ${planStatus}
 
             <details><summary>Show Plan</summary>
 
             \`\`\`\n
-            ${process.env.PLAN}
+            ${process.env.PLAN_OUTPUT}
             \`\`\`
 
             </details>
